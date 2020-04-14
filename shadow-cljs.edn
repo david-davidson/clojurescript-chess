@@ -1,0 +1,20 @@
+{
+	:source-paths ["src/dev" "src/main" "src/test"]
+
+	:dependencies [[reagent "0.9.1"]]
+
+	:dev-http {
+		9090 "public"
+	}
+
+	:builds {
+		:app {
+			:output-dir "public/compiled/"
+			:asset-path "compiled" ; Relative to `public`
+			:target :browser
+			:modules {:main {:init-fn chess.main/load!}}
+			:devtools {:after-load chess.main/reload!}
+		}
+	}
+}
+
