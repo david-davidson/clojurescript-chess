@@ -16,6 +16,13 @@
             [(+ x offset-x) (+ y offset-y)]))
     (map build-move offsets))
 
+(def piece-strings (hash-map :pawn "Pawn"
+                             :rook "Rook"
+                             :knight "Knight"
+                             :bishop "Bishop"
+                             :queen "Queen"
+                             :king "King"))
+
 (def pawn (hash-map :type :pawn
                     :limit 1
                     :moves (offsets->moves [[1 1] [1 -1] [-1 1] [-1 -1]])))

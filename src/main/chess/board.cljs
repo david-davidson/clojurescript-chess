@@ -29,3 +29,9 @@
     "Takes position in rank-and-file format: a1, etc"
     [board position]
         (lookup-coords board (to-coordinates position)))
+
+(defn move-piece [board from to]
+    (let [piece (lookup-coords board from)]
+        (-> board
+            (assoc-in from (vacant))
+            (assoc-in to piece))))

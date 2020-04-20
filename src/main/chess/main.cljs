@@ -1,21 +1,27 @@
 (ns chess.main
     (:require [reagent.core :as reagent]
-              [chess.moves :refer [get-moves-from-position]]
-              [chess.board :refer [get-initial-board to-coordinates]]))
+              [chess.pieces :refer [piece-strings vacant]]
+              [chess.components :refer [app]]
+              [chess.board :refer [get-initial-board to-coordinates lookup-coords move-piece]]))
 
-; For testing from the REPL: (get-moves-repl "b8") => ([2 2] [2 0])
-(def get-moves-repl (comp
-    (partial get-moves-from-position (get-initial-board))
-    to-coordinates))
+(defonce board (reagent/atom (get-initial-board)))
+(defn set-board [new-board] (reset! board new-board))
 
-(defn app []
-    [:div
-        [:h1 "Hello, world!"]])
+(defonce hovered-coords (reagent/atom nil))
+(defn set-hovered-coords [coords] (reset! hovered-coords coords))
+
+; For manually moving pieces from the REPL:
+(defn move-piece-repl [from to]
+    (let [from-coords (to-coordinates from)
+          to-coords (to-coordinates to)
+          new-board (move-piece @board from-coords to-coords)]
+        (set-board new-board)))
 
 ; --------------------------------------------------------------------------------------------------
 
 (defn mount! []
-    (reagent/render [app] (.getElementById js/document "app")))
+    (reagent/render [app board hovered-coords {:set-hovered-coords set-hovered-coords}]
+                    (.getElementById js/document "app")))
 
 (defn load! []
     (mount!))

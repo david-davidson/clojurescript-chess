@@ -15,10 +15,12 @@ shadow-cljs watch app
 
 To open a REPL, run `shadow-cljs cljs-repl app` in another terminal window (with `shadow-cljs watch app` running and the localhost window open). Execute `(ns chess.main)` to load the app's namespace.
 
-### Progress
-So far, all we can do is get the moves available from a given rank-and-file position. In the REPL:
+### What can it do so far?
+So far, the only way to move is via the REPL:
 ```cljs
 > (ns chess.main)
-> (get-moves-repl "b8") ; Knight, white: b8 corresponds to [0, 1] in board matrix
-([2 2] [2 0]) ; Available moves
+> (move-piece-repl "a2" "b3") ; Move piece from a2 to b3
 ```
+There's no validation at all on the `from` and `to` fields.
+
+Hovering a piece highlights in green the places it's _allowed_ to move (though again, the REPL doesn't respect these constraints). There's plenty of work left around getting the "places I'm allowed to move to" logic dialed in for each piece type.
