@@ -34,4 +34,4 @@
     (let [piece (lookup-coords board from)]
         (-> board
             (assoc-in from (vacant))
-            (assoc-in to piece))))
+            (assoc-in to (update-in piece [:move-count] inc)))))

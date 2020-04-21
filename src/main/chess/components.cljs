@@ -1,11 +1,10 @@
 (ns chess.components
     (:require [chess.moves :refer [get-moves-from-position]]
+              [chess.utils :refer [reverse-color]]
               [chess.pieces :refer [piece-strings is-vacant?]]))
 
 (def square-size 75)
 (def piece-size 60)
-
-(defn reverse-color [color] (if (= color :black) "white" "black"))
 
 (defn get-square-background-color [row-idx col-idx available-moves]
     (if (some #(= % [row-idx col-idx]) available-moves)
