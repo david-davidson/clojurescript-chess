@@ -16,11 +16,4 @@ shadow-cljs watch app
 To open a REPL, run `shadow-cljs cljs-repl app` in another terminal window (with `shadow-cljs watch app` running and the localhost window open). Execute `(ns chess.main)` to load the app's namespace.
 
 ### What can it do so far?
-So far, the only way to move is via the REPL:
-```cljs
-> (ns chess.main)
-> (move-piece-repl "a2" "b3") ; Move piece from a2 to b3
-```
-There's no validation at all on the `from` and `to` fields.
-
-Hovering a piece highlights in green the places it's _allowed_ to move (though again, the REPL doesn't respect these constraints). There's plenty of work left around getting the "places I'm allowed to move to" logic dialed in for each piece type.
+There's not yet any notion of programmatic gameplay (you vs. the computer). But you can move pieces around the board at https://clojurescript-chess.surge.sh/!
