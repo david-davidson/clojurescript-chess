@@ -17,12 +17,12 @@
                 [(x-operator x offset-x) (+ y offset-y)])))
     (map build-move offsets))
 
-(def piece-strings (hash-map :pawn "Pawn"
-                             :rook "Rook"
-                             :knight "Knight"
-                             :bishop "Bishop"
-                             :queen "Queen"
-                             :king "King"))
+(def piece-symbols (hash-map :pawn "\u2659"
+                             :rook "\u2656"
+                             :knight "\u2658"
+                             :bishop "\u2657"
+                             :queen "\u2655"
+                             :king "\u2654"))
 
 (def pawn (hash-map :type :pawn
                     :moves [{
