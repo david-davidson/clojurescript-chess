@@ -57,6 +57,7 @@
             }]})
 
 (def king {:type :king
+           :allow-unsafe-moves false ; Can't move into check
            :moves [{
             :get-limit (const 1)
             :transformations (offsets->moves [[0 1] [1 1] [1 0] [1 -1] [0 -1] [-1 -1] [-1 0] [-1 1]])
