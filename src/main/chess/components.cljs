@@ -20,11 +20,14 @@
           {:keys [row-idx col-idx available-moves set-hovered-coords set-piece]} props
           [_ ref] (useDrop (clj->js {
               :accept :piece
-              :drop (fn [item]
-                (let [from-coords (get (js->clj item) "from-coords")]
-                    (set-piece from-coords [row-idx col-idx])))
-              :canDrop (fn [item]
-                (let [available-moves (get (js->clj item) "available-moves")]
+              :drop (fn [js-piece]
+                (let [piece-data (from-safe-props js-piece)
+                      from-coords (get piece-data :from-coords)
+                      from-color (get piece-data :color)]
+                    (set-piece from-color from-coords [row-idx col-idx])))
+              :canDrop (fn [js-piece]
+                (let [piece-data (from-safe-props js-piece)
+                      available-moves (get piece-data :available-moves)]
                     (some #(= % [row-idx col-idx]) available-moves)))
           }))]
         ^{:key (str row-idx col-idx)}
@@ -41,13 +44,15 @@
 
 (defn piece-ui [js-props]
         (let [props (from-safe-props js-props)
-              {:keys [piece coords available-moves set-hovered-coords]} props
+              {:keys [piece coords available-moves active-color set-hovered-coords]} props
+              belongs-to-active-color (= active-color (get piece :color))
               [dnd-props ref] (useDrag (clj->js {
-                :item {
-                    :type :piece
-                    :from-coords coords
-                    :available-moves available-moves
-                }
+                :item (merge {:type :piece}
+                              (to-safe-props {
+                                :color (get piece :color)
+                                :from-coords coords
+                                :available-moves available-moves
+                              }))
                 :collect (fn [monitor] {
                     :is-dragging (.isDragging monitor)
                 })}))]
@@ -66,8 +71,8 @@
                     :cursor "pointer"
                     :opacity (if (get dnd-props :is-dragging) 0.1 1)}
                     :ref ref
-                    :on-mouse-enter #(apply set-hovered-coords [coords])
-                    :on-mouse-leave #(apply set-hovered-coords [nil])}
+                    :on-mouse-enter (fn [] (when belongs-to-active-color (set-hovered-coords coords)))
+                    :on-mouse-leave (fn [] (when belongs-to-active-color (set-hovered-coords nil)))}
                         [:div {:style {:transform "translateY(-3px)"}}
                             (piece-symbols (get piece :type))]]))))
 
@@ -84,7 +89,7 @@
                     char])
              ["A" "B" "C" "D" "E" "F" "G" "H"])])
 
-(defn board-ui [board hovered-coords {:keys [set-hovered-coords set-piece]}]
+(defn board-ui [board hovered-coords active-color {:keys [set-hovered-coords set-piece]}]
     [:> DndProvider {:backend react-html5-backend/default}
         [:div {:style {:display "inline-block"}}
             (let [available-moves (get-moves-from-position board hovered-coords)]
@@ -102,6 +107,7 @@
                                                         [:> piece-ui (to-safe-props {
                                                             :piece piece
                                                             :coords [row-idx col-idx]
+                                                            :active-color active-color
                                                             :available-moves available-moves
                                                             :set-hovered-coords set-hovered-coords
                                                         })]])
@@ -109,6 +115,6 @@
                              board))
                 [col-labels]]])
 
-(defn app [board hovered-coords handlers]
+(defn app [board hovered-coords active-color handlers]
     [:div {:style { :text-align "center" :margin-top 50 }}
-        [board-ui @board @hovered-coords handlers]])
+        [board-ui @board @hovered-coords @active-color handlers]])
