@@ -14,6 +14,8 @@
 
 (defn const [val] (fn [] val))
 
+(defn log [item] (println item) item)
+
 ; Per https://github.com/reagent-project/reagent/issues/389, interop between React components and
 ; Reagent components automatically coerces primitives between CLJS and JS, in ways we don't usually
 ; want (snake case to camel case, etc). To leave CLJS values untouched when we pass them in to

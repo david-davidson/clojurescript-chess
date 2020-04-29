@@ -25,6 +25,7 @@
                     :king "\u2654"})
 
 (def pawn {:type :pawn
+           :weight 1
            :moves [{
             :can-capture false
             :transformations (offsets->moves [[-1 0]])
@@ -36,27 +37,32 @@
            }]})
 
 (def rook {:type :rook
+           :weight 5
            :moves [{
             :transformations (offsets->moves [[0 1] [0 -1] [1 0] [-1 0]])
            }]})
 
 (def knight {:type :knight
+             :weight 5
              :moves [{
                 :get-limit (const 1)
                 :transformations (offsets->moves [[1 2] [2 1] [1 -2] [2 -1] [-1 -2] [-2 -1] [-1 2] [-2 1]])
              }]})
 
 (def bishop {:type :bishop
+             :weight 5
              :moves [{
               :transformations (offsets->moves [[1 1] [1 -1] [-1 1] [-1 -1]])
              }]})
 
 (def queen {:type :queen
+            :weight 25
             :moves [{
                 :transformations (offsets->moves [[0 1] [1 1] [1 0] [1 -1] [0 -1] [-1 -1] [-1 0] [-1 1]])
             }]})
 
 (def king {:type :king
+           :weight 100
            :allow-unsafe-moves false ; Can't move into check
            :moves [{
             :get-limit (const 1)

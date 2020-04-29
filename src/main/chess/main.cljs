@@ -2,7 +2,11 @@
     (:require [reagent.core :as reagent]
               [chess.components :refer [app]]
               [chess.utils :refer [reverse-color]]
+              [chess.moves :refer [get-moves-for-color]]
+              [chess.gameplay :refer [get-next-move]]
               [chess.board :refer [get-initial-board move-piece]]))
+
+(def search-depth 3)
 
 (defonce board (reagent/atom (get-initial-board)))
 (defn set-board [new-board] (reset! board new-board))
@@ -17,7 +21,13 @@
     (let [new-board (move-piece @board from to)
           new-player (reverse-color from-color)]
         (set-active-player new-player)
-        (set-board new-board)))
+        (set-board new-board)
+        (js/setTimeout (fn []
+            (when (= @active-color :black)
+                (let [[from to] (get-next-move @board @active-color search-depth)]
+                    (set-piece @active-color from to)))
+            ) 0)
+        new-board))
 
 ; --------------------------------------------------------------------------------------------------
 

@@ -1,5 +1,5 @@
 (ns chess.moves
-    (:require [chess.board :refer [lookup-coords move-piece]]
+    (:require [chess.board :refer [lookup-coords move-piece get-coords-by-color score-board]]
               [chess.utils :refer [flatten-once reverse-color]]
               [chess.pieces :refer [is-vacant? pieces-by-type]]))
 
@@ -84,3 +84,8 @@
                  (map (partial get-valid-moves board position piece))
                  (flatten-once)
                  ((partial filter-unsafe-moves board position should-filter-unsafe-moves))))))
+
+(defn get-moves-for-color [board color]
+    (as-> (get-coords-by-color board) $
+          (get $ color)
+          (reduce #(assoc %1 %2 (get-moves-from-position board %2)) {} $)))
