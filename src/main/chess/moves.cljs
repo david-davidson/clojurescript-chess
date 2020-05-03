@@ -88,4 +88,8 @@
 (defn get-moves-for-color [board color]
     (as-> (get-coords-by-color board) $
           (get $ color)
-          (reduce #(assoc %1 %2 (get-moves-from-position board %2)) {} $)))
+          (map (fn [from-coords]
+                (->> (get-moves-from-position board from-coords)
+                     (map (fn [to-coords] [from-coords to-coords]))))
+               $)
+          (flatten-once $)))

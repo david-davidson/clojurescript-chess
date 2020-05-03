@@ -2,7 +2,6 @@
     (:require [reagent.core :as reagent]
               [chess.components :refer [app]]
               [chess.utils :refer [reverse-color]]
-              [chess.moves :refer [get-moves-for-color]]
               [chess.gameplay :refer [get-next-move]]
               [chess.board :refer [get-initial-board move-piece]]))
 

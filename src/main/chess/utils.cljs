@@ -14,6 +14,9 @@
 
 (defn const [val] (fn [] val))
 
+(defn index-of [item coll]
+    (count (take-while (partial not= item) coll)))
+
 (defn log [item] (println item) item)
 
 ; Per https://github.com/reagent-project/reagent/issues/389, interop between React components and
