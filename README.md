@@ -20,6 +20,6 @@ It implements the `minimax` algorithm, which walks the game tree and selects for
 
 ### What's next?
 I'd like to:
-* Tune the algorithm for performance, to improve search depth (alpha-beta pruning?)
+* Keep tuning the algorithm for performance, to support greater search depth
 * Consider dynamically increasing search depth in endgame scenarios, where there are fewer pieces on the board (and thus a smaller game tree to explore)
 * Add the notion of checkmate! (For now, kings are treated as regular pieces)
