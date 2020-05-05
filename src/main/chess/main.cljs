@@ -22,11 +22,12 @@
           new-player (reverse-color from-color)]
         (set-active-player new-player)
         (set-board new-board)
-        (js/setTimeout (fn []
-            (when (= @active-color :black)
+        (js/setTimeout
+            (fn [] (when (= @active-color :black)
                 (let [[from to] (get-next-move @board @active-color search-depth)]
-                    (set-piece @active-color from to)))
-            ) 0)
+                    (set-piece @active-color from to))))
+            ; Timeout gives time for loading GIF to reliably render
+            250)
         new-board))
 
 ; --------------------------------------------------------------------------------------------------

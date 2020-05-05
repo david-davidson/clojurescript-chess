@@ -89,6 +89,11 @@
                     char])
              ["A" "B" "C" "D" "E" "F" "G" "H"])])
 
+(defn loading-ui [active-color]
+    [:div {:style { :width 80 :height 80 :margin "0 auto 20px"}}
+        (when (= active-color :black)
+            [:img { :src "spinner.gif" :height "100%" :width "100%" }])])
+
 (defn board-ui [board hovered-coords active-color {:keys [set-hovered-coords set-piece]}]
     [:> DndProvider {:backend react-html5-backend/default}
         [:div {:style {:display "inline-block"}}
@@ -116,5 +121,6 @@
                 [col-labels]]])
 
 (defn app [board hovered-coords active-color handlers]
-    [:div {:style { :text-align "center" :margin-top 50 }}
+    [:div {:style { :text-align "center" }}
+        [loading-ui @active-color]
         [board-ui @board @hovered-coords @active-color handlers]])
