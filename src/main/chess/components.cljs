@@ -89,6 +89,17 @@
                     char])
              ["A" "B" "C" "D" "E" "F" "G" "H"])])
 
+(def max-search-depth 6)
+(defn depth-ui [search-depth set-search-depth]
+    [:div {:style {:position "absolute" :top 40 :left 18}} "Search depth: "
+    [:select
+        {:value search-depth
+         :on-change #(set-search-depth (->> % .-target .-value))}
+        (map (fn [idx]
+            ^{:key idx}
+            [:option { :value idx } idx]) (range 1 max-search-depth))]])
+
+
 (defn loading-ui [active-color]
     [:div {:style { :width 80 :height 80 :margin "0 auto 20px"}}
         (when (= active-color :black)
@@ -120,7 +131,14 @@
                              board))
                 [col-labels]]])
 
-(defn app [board hovered-coords active-color handlers]
+(defn header-ui [search-depth active-color set-search-depth]
+[:div {:style {:display "flex" :position "relative"}}
+    [depth-ui search-depth set-search-depth]
+    [loading-ui active-color]
+])
+
+(defn app [board hovered-coords active-color search-depth handlers]
     [:div {:style { :text-align "center" }}
-        [loading-ui @active-color]
-        [board-ui @board @hovered-coords @active-color handlers]])
+        [:div {:style { :display "inline-block" }}
+            [header-ui @search-depth @active-color (get handlers :set-search-depth)]
+            [board-ui @board @hovered-coords @active-color handlers]]])

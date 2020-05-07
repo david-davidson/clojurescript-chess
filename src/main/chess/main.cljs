@@ -5,7 +5,8 @@
               [chess.gameplay :refer [get-next-move]]
               [chess.board :refer [get-initial-board move-piece]]))
 
-(def search-depth 4)
+(defonce search-depth (reagent/atom 4))
+(defn set-search-depth [depth] (reset! search-depth depth))
 
 (defonce board (reagent/atom (get-initial-board)))
 (defn set-board [new-board] (reset! board new-board))
@@ -23,7 +24,7 @@
         (set-board new-board)
         (js/setTimeout
             (fn [] (when (= @active-color :black)
-                (let [[from to] (get-next-move @board @active-color search-depth)]
+                (let [[from to] (get-next-move @board @active-color @search-depth)]
                     (set-piece @active-color from to))))
             ; Timeout gives time for loading GIF to reliably render
             250)
@@ -32,7 +33,9 @@
 ; --------------------------------------------------------------------------------------------------
 
 (defn mount! []
-    (reagent/render [app board hovered-coords active-color {:set-hovered-coords set-hovered-coords :set-piece set-piece}]
+    (reagent/render [app board hovered-coords active-color search-depth {:set-hovered-coords set-hovered-coords
+                                                                         :set-piece set-piece
+                                                                         :set-search-depth set-search-depth}]
                     (.getElementById js/document "app")))
 
 (defn load! []
