@@ -2,6 +2,7 @@
     (:require [chess.moves :refer [get-moves-from-position]]
               [chess.utils :refer [reverse-color to-safe-props from-safe-props get-js-children]]
               [reagent.core :as reagent]
+              [chess.board :refer [lookup-coords]]
               ["react-dnd" :as react-dnd :refer [DndProvider useDrag useDrop]]
               ["react-dnd-html5-backend" :as react-html5-backend]
               [chess.pieces :refer [piece-symbols is-vacant?]]))
@@ -9,15 +10,15 @@
 (def square-size 75)
 (def piece-size 60)
 
-(defn get-square-background-color [row-idx col-idx available-moves]
+(defn get-square-background-color [hovered-color row-idx col-idx available-moves]
     (if (some #(= % [row-idx col-idx]) available-moves)
-        "springgreen"
+        (if (= hovered-color :white) "springgreen" "lightblue")
         (if (= (even? row-idx) (even? col-idx)) "white" "gray")))
 
 (defn square-ui [js-props]
     (let [props (from-safe-props js-props)
           children (get-js-children js-props)
-          {:keys [row-idx col-idx available-moves set-hovered-coords set-piece]} props
+          {:keys [row-idx col-idx available-moves set-hovered-coords set-piece hovered-color]} props
           [_ ref] (useDrop (clj->js {
               :accept :piece
               :drop (fn [js-piece]
@@ -37,7 +38,7 @@
                 :width square-size
                 :align-items "center"
                 :justify-content "center"
-                :background-color (get-square-background-color row-idx col-idx available-moves)
+                :background-color (get-square-background-color hovered-color row-idx col-idx available-moves)
                 :display "flex"}
             :ref ref}
                 children])))
@@ -66,13 +67,14 @@
                     :font-size "2em"
                     :display "flex"
                     :align-items "center"
+                    :user-select "none"
                     :justify-content "center"
                     :border "1px solid"
-                    :cursor "pointer"
+                    :cursor (if belongs-to-active-color "pointer" "default")
                     :opacity (if (get dnd-props :is-dragging) 0.1 1)}
-                    :ref ref
-                    :on-mouse-enter (fn [] (when belongs-to-active-color (set-hovered-coords coords)))
-                    :on-mouse-leave (fn [] (when belongs-to-active-color (set-hovered-coords nil)))}
+                    :ref (if belongs-to-active-color ref nil)
+                    :on-mouse-enter #(set-hovered-coords coords)
+                    :on-mouse-leave #(set-hovered-coords nil)}
                         [:div {:style {:transform "translateY(-3px)"}}
                             (piece-symbols (get piece :type))]]))))
 
@@ -108,7 +110,8 @@
 (defn board-ui [board hovered-coords active-color {:keys [set-hovered-coords set-piece]}]
     [:> DndProvider {:backend react-html5-backend/default}
         [:div {:style {:display "inline-block"}}
-            (let [available-moves (get-moves-from-position board hovered-coords)]
+            (let [available-moves (get-moves-from-position board hovered-coords)
+                  hovered-color (:color (lookup-coords board hovered-coords))]
                 (map-indexed (fn [row-idx row]
                                 ^{:key row-idx}
                                 [:div {:style {:display "flex"}}
@@ -119,6 +122,7 @@
                                                         :row-idx row-idx
                                                         :col-idx col-idx
                                                         :available-moves available-moves
+                                                        :hovered-color hovered-color
                                                         :set-piece set-piece})
                                                         [:> piece-ui (to-safe-props {
                                                             :piece piece
