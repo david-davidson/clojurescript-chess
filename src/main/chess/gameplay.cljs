@@ -3,7 +3,7 @@
               [chess.moves :refer [get-moves-for-color]]
               [chess.board :refer [move-piece score-board]]))
 
-(defn get-comparator [color] (if (= color :white) max min))
+(defn get-comparator [color] (if (= color :white) > <))
 
 (defn get-initial-score [color] (if (= color :white) -1000 1000))
 
@@ -22,32 +22,40 @@
                best-score-so-far (get-initial-score color)
                idx 0
                idx-best-score-so-far 0
+               tie-breaker-score-so-far 0
                alpha initial-alpha
                beta initial-beta]
             (let [next-move (first child-moves)]
                 (if (or (> alpha beta) (nil? next-move))
-                    {:score best-score-so-far
-                     :move-idx idx-best-score-so-far}
+                    (if (= depth 1)
+                        idx-best-score-so-far
+                        best-score-so-far)
                     (let [[from-coords to-coords] next-move
+                           next-board (move-piece board from-coords to-coords)
+                           tie-breaker-score (if (= depth 1)
+                            (count (get-moves-for-color next-board color))
+                            0)
                            next-score (if (>= depth target-depth)
-                                          (score-board (move-piece board from-coords to-coords))
-                                          (-> (get-best-score (move-piece board from-coords to-coords)
-                                                              (reverse-color color)
-                                                              target-depth
-                                                              (inc depth)
-                                                              alpha
-                                                              beta)
-                                              :score
-                                              (/ depth)))
-                           best-score ((get-comparator color) next-score best-score-so-far)]
+                                          (score-board next-board)
+                                          (get-best-score next-board
+                                                          (reverse-color color)
+                                                          target-depth
+                                                          (inc depth)
+                                                          alpha
+                                                          beta))
+                           should-update-score (if (= next-score best-score-so-far)
+                                                   (> tie-breaker-score
+                                                      tie-breaker-score-so-far)
+                                                   ((get-comparator color) next-score best-score-so-far))
+                           best-score (if should-update-score next-score best-score-so-far)]
                         (recur (rest child-moves)
                                best-score
                                (inc idx)
-                               (if (= next-score best-score) idx idx-best-score-so-far)
+                               (if should-update-score idx idx-best-score-so-far)
+                               (if should-update-score tie-breaker-score tie-breaker-score-so-far)
                                (if (= color :white) (max alpha best-score) alpha)
                                (if (= color :black) (min beta best-score) beta))))))))
 
 (defn get-next-move [board color depth]
     (->> (get-best-score board color depth)
-         :move-idx
          (nth (get-moves-for-color board color))))

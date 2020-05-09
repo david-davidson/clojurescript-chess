@@ -5,7 +5,7 @@
               [chess.gameplay :refer [get-next-move]]
               [chess.board :refer [get-initial-board move-piece]]))
 
-(defonce search-depth (reagent/atom 4))
+(defonce search-depth (reagent/atom 3))
 (defn set-search-depth [depth] (reset! search-depth depth))
 
 (defonce board (reagent/atom (get-initial-board)))

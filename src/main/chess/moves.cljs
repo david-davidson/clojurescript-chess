@@ -57,7 +57,7 @@
                       (and (get move-config :can-capture true) is-next-piece-opposite-color)
                         (conj visited-moves next-move)
                       (and (get move-config :can-advance true) (is-vacant? next-piece))
-                        (recur (next moves-to-visit) (conj visited-moves next-move))
+                        (recur (rest moves-to-visit) (conj visited-moves next-move))
                       :else
                         visited-moves))
             visited-moves)))

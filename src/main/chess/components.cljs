@@ -91,7 +91,7 @@
                     char])
              ["A" "B" "C" "D" "E" "F" "G" "H"])])
 
-(def max-search-depth 6)
+(def max-search-depth 5)
 (defn depth-ui [search-depth set-search-depth]
     [:div {:style {:position "absolute" :top 40 :left 18}} "Search depth: "
     [:select
