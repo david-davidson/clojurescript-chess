@@ -14,10 +14,13 @@
 
 (defn const [val] (fn [] val))
 
-(defn index-of [item coll]
-    (count (take-while (partial not= item) coll)))
-
-(defn log [item] (println item) item)
+(defn reduce-with-early-exit [reducer total coll]
+        (let [current (first coll)]
+            (if (nil? current)
+                total
+                (reducer total
+                         current
+                         #(reduce-with-early-exit reducer % (rest coll))))))
 
 ; Per https://github.com/reagent-project/reagent/issues/389, interop between React components and
 ; Reagent components automatically coerces primitives between CLJS and JS, in ways we don't usually

@@ -2,7 +2,7 @@
     (:require [reagent.core :as reagent]
               [chess.components :refer [app]]
               [chess.utils :refer [reverse-color]]
-              [chess.gameplay :refer [get-next-move]]
+              [chess.gameplay :refer [evaluate-board]]
               [chess.board :refer [get-initial-board move-piece]]))
 
 (defonce search-depth (reagent/atom 3))
@@ -24,7 +24,7 @@
         (set-board new-board)
         (js/setTimeout
             (fn [] (when (= @active-color :black)
-                (let [[from to] (get-next-move @board @active-color @search-depth)]
+                (let [[from to] (evaluate-board @board @active-color @search-depth)]
                     (set-piece @active-color from to))))
             ; Timeout gives time for loading GIF to reliably render
             250)
