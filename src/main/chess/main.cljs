@@ -2,6 +2,7 @@
     (:require [reagent.core :as reagent]
               [chess.components :refer [app]]
               [chess.utils :refer [reverse-color]]
+              [chess.moves :refer [is-check? is-checkmate?]]
               [chess.board :refer [get-initial-board move-piece]]))
 
 (def web-worker (js/Worker. "/compiled/worker.js"))
@@ -23,6 +24,11 @@
           new-player (reverse-color from-color)]
         (set-active-player new-player)
         (set-board new-board)
+        (js/setTimeout (fn []
+            (when (is-check? new-board (reverse-color from-color))
+                (if (is-checkmate? new-board (reverse-color from-color))
+                    (js/alert "Checkmate")
+                    (js/alert "Check")))) 100)
         (when (= @active-color "black")
               (.. web-worker (postMessage (clj->js {:board @board
                                                     :color @active-color

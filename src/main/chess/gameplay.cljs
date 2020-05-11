@@ -1,15 +1,13 @@
 (ns chess.gameplay
     (:require [chess.utils :refer [reverse-color reduce-with-early-exit indexes-by-item]]
-              [chess.moves :refer [get-moves-for-color get-all-moves-for-color]]
+              [chess.moves :refer [get-moves-for-color get-all-moves-for-color is-checkmate?]]
               [chess.board :refer [move-piece evaluate-board]]))
 
 (declare evaluate-game-tree)
 
 (defn get-comparator [color] (if (= color "white") > <))
 
-(defn get-default-score-if-no-subtree [color]
-    "Handles cases when a board is not yet at terminal depth, but has no moves available. For now,
-    we need this to seek checkmate."
+(defn get-checkmate-val [color]
     (if (= color "white") js/Infinity (- js/Infinity)))
 
 (defn select-cache [item] (get item :cache))
@@ -23,13 +21,19 @@
         first
         :move))
 
-(defn select-best-subtree-score [color item]
+(defn select-best-subtree-score [color item board]
     (-> (get item :visited-moves)
         first
-        (get :score (get-default-score-if-no-subtree color))))
+        ((fn [item]
+            (if item
+                (get item :score)
+                (if (is-checkmate? board (reverse-color color))
+                    (get-checkmate-val color)
+                    (evaluate-board board)))))))
 
 (defn sort-visited-moves [color item]
     (let [sorted-moves (->> (get item :visited-moves)
+                            (sort-by :at-depth)
                             (sort-by :score (get-comparator color)))]
         (assoc item :visited-moves sorted-moves)))
 
@@ -45,13 +49,14 @@
                                    (select-sorted-moves color results))]
         (assoc results :cache next-cache)))
 
-(defn get-available-moves [board color cache]
+(defn get-available-moves [board color filter cache]
     "Gets all moves available from a given board. If we've already visited the board, we check the
     cache for the best order to visit children in. Note that we can't return the cache hit as-is
     (and instead have to use it as a sort helper) because it's possible the previous iteration
     alpha/beta pruned certain children that shouldn't be pruned in the current iteration."
     (let [subcache (get cache color)
-          child-moves (get-moves-for-color board color)
+          child-moves (get-moves-for-color board color filter
+          )
           cached-moves (get subcache board)]
         (if cached-moves
             (if (= (count cached-moves) (count child-moves))
@@ -60,27 +65,43 @@
                     (sort-by #(get indexes-by-move % js/Infinity) child-moves)))
             child-moves)))
 
-(defn get-minimax-reducer [board color depth]
+(defn get-minimax-reducer [board color target-depth depth]
     "Minimax helper with an alpha/beta condition for early exit: `next-step` to continue iteration,
     bare return value to bail early."
     (fn [{:keys [alpha beta visited-moves cache] :as accum}
          next-move
          next-step]
-        (if (> alpha beta)
+        ; (println "depth" depth, "visiting" next-move)
+        (if (>= alpha beta)
             accum ; Bail early
             (let [[from-coords to-coords] next-move
                   next-board (move-piece board from-coords to-coords)
-                  next-game-tree (when (> depth 1)
+                  next-game-tree (when (> target-depth depth)
                                        (evaluate-game-tree next-board
                                                            (reverse-color color)
                                                            cache
-                                                           (dec depth)
+                                                           target-depth
+                                                           (inc depth)
                                                            alpha
                                                            beta))
-                  next-score (if (= depth 1)
+                  next-score (if (= depth target-depth)
                                  (evaluate-board next-board)
-                                 (select-best-subtree-score color next-game-tree))]
-                (next-step {:visited-moves (conj visited-moves {:move next-move :score next-score})
+                                 (select-best-subtree-score color next-game-tree next-board))]
+                ; (when (and (= depth 1) (= next-move [[0 7] [4 7]]))
+                ;     (println (get next-game-tree :visited-moves))
+                ;     (println target-depth)
+                ; )
+                ;  (println "next score is" next-score "at depth" depth)
+                (next-step {:visited-moves (conj visited-moves {:move next-move
+                                                                :score next-score
+                                                                :at-depth (if (> target-depth depth)
+                                                                    (-> next-game-tree
+                                                                        (get :visited-moves)
+                                                                        first
+                                                                        (get :at-depth depth)
+                                                                        )
+                                                                    depth)
+                                                                    })
                             :cache (get next-game-tree :cache cache)
                             :alpha (if (= color "white") (max alpha next-score) alpha)
                             :beta (if (= color "black") (min beta next-score) beta)})))))
@@ -90,11 +111,11 @@
     players will make optimal choices. This assumption enables alpha/beta pruning, where if a score
     is visited that means the current subtree will never be chosen, we can skip evaluating all other
     boards in that subtreee. `alpha` and `beta` track the highest/lowest scores in a given subtree."
-    ([board color cache depth] (evaluate-game-tree board color cache depth (- js/Infinity) js/Infinity))
-    ([board color cache depth alpha beta]
-        (->> (get-available-moves board color cache)
+    ([board color cache target-depth] (evaluate-game-tree board color cache target-depth 1 (- js/Infinity) js/Infinity))
+    ([board color cache target-depth depth alpha beta]
+        (->> (get-available-moves board color (not= depth target-depth) cache)
              (reduce-with-early-exit
-                (get-minimax-reducer board color depth)
+                (get-minimax-reducer board color target-depth depth)
                 {:visited-moves []
                  :cache cache
                  :alpha alpha
@@ -112,6 +133,10 @@
            iterative-depth 1]
         (let [game-tree (evaluate-game-tree board color cache iterative-depth)]
             (if (= iterative-depth depth)
+                (do
+                (println (get game-tree :visited-moves))
                 (select-best-move color game-tree)
+
+                )
                 (recur (select-cache game-tree)
                        (inc iterative-depth))))))
