@@ -36,31 +36,13 @@
             (assoc-in from (vacant))
             (assoc-in to (update-in piece [:move-count] inc)))))
 
-(defn get-all-pieces [board]
-    (->> (for [x (range 8) y (range 8)] [x y])
-         (filter #(not(is-vacant? (lookup-coords board %))))))
-
-(defn get-coords-by-color [board]
-    (->> (get-all-pieces board)
-         (group-by #((lookup-coords board %) :color))))
-
-(defn get-weight-at-coords [board coords]
-    (->> (lookup-coords board coords)
-         :type
-         pieces-by-type
-         :weight))
-
-(defn score-coords [board coords]
-    (->> coords
-        (map (partial get-weight-at-coords board))
-        (reduce +)))
-
-(defn build-numeric-score [score]
-    (- (get score :white)
-       (get score :black)))
-
 (defn score-board [board]
-    (->> (get-coords-by-color board)
-         (reduce (fn [total [color all-coords]]
-            (assoc total color (score-coords board all-coords))) {})
-         (build-numeric-score)))
+    (reduce
+        (fn [total row]
+            (reduce
+                (fn [total piece]
+                    (+ total (get piece :weight 0)))
+                total
+                row))
+        0
+        board))

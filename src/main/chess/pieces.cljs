@@ -1,12 +1,6 @@
 (ns chess.pieces
     (:require [chess.utils :refer [key-by const]]))
 
-(defn build-piece [color type]
-    {:color color :type type :move-count 0})
-
-(def b (partial build-piece :black))
-(def w (partial build-piece :white))
-
 (defn vacant [] {:type :empty})
 (defn is-vacant? [piece] (= (get piece :type) :empty))
 
@@ -70,3 +64,15 @@
            }]})
 
 (def pieces-by-type (key-by :type [pawn rook knight bishop queen king]))
+
+(defn build-piece [color type]
+    {:color color
+     :type type
+     :weight (let [weight (get (get pieces-by-type type) :weight)]
+        (if (= color :white)
+            weight
+            (- weight)))
+     :move-count 0})
+
+(def b (partial build-piece :black))
+(def w (partial build-piece :white))

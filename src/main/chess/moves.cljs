@@ -1,12 +1,12 @@
 (ns chess.moves
-    (:require [chess.board :refer [lookup-coords move-piece get-coords-by-color score-board]]
+    (:require [chess.board :refer [lookup-coords move-piece score-board]]
               [chess.utils :refer [flatten-once reverse-color]]
               [chess.pieces :refer [is-vacant? pieces-by-type]]))
 
 (defn is-coord-element-valid? [coord] (and (>= coord 0) (< coord 8)))
 (defn is-coord-valid? [coord] (every? is-coord-element-valid? coord))
 
-(defn get-all-coords-for-color [board color]
+(defn get-coords-for-color [board color]
     (->> (for [x (range 8) y (range 8)] [x y])
          (filter (fn [position]
             (let [piece (lookup-coords board position)]
@@ -15,7 +15,7 @@
 (declare get-moves-from-position) ; We need to declare this above `get-all-moves-for-color`, but can't _define_ it yet
 
 (defn get-all-moves-for-color [board color]
-    (->> (get-all-coords-for-color board color)
+    (->> (get-coords-for-color board color)
          (map #(get-moves-from-position board % false))
          (flatten-once)))
 
@@ -86,10 +86,8 @@
                  ((partial filter-unsafe-moves board position should-filter-unsafe-moves))))))
 
 (defn get-moves-for-color [board color]
-    (as-> (get-coords-by-color board) $
-          (get $ color)
-          (map (fn [from-coords]
-                (->> (get-moves-from-position board from-coords)
-                     (map (fn [to-coords] [from-coords to-coords]))))
-               $)
-          (flatten-once $)))
+    (->> (get-coords-for-color board color)
+         (map (fn [from-coords]
+            (->> (get-moves-from-position board from-coords)
+                 (map (fn [to-coords] [from-coords to-coords])))))
+         flatten-once))
