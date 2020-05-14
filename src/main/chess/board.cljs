@@ -11,14 +11,14 @@
                                                get-position-weighting]]))
 
 (defn get-initial-board [] [
-    [(b :rook) (b :knight) (b :bishop) (b :queen) (b :king) (b :bishop) (b :knight) (b :rook)]
-    [(b :pawn) (b :pawn) (b :pawn) (b :pawn) (b :pawn) (b :pawn) (b :pawn) (b :pawn)]
+    [(b "rook") (b "knight") (b "bishop") (b "queen") (b "king") (b "bishop") (b "knight") (b "rook")]
+    [(b "pawn") (b "pawn") (b "pawn") (b "pawn") (b "pawn") (b "pawn") (b "pawn") (b "pawn")]
     [(vacant) (vacant) (vacant) (vacant) (vacant) (vacant) (vacant) (vacant)]
     [(vacant) (vacant) (vacant) (vacant) (vacant) (vacant) (vacant) (vacant)]
     [(vacant) (vacant) (vacant) (vacant) (vacant) (vacant) (vacant) (vacant)]
     [(vacant) (vacant) (vacant) (vacant) (vacant) (vacant) (vacant) (vacant)]
-    [(w :pawn) (w :pawn) (w :pawn) (w :pawn) (w :pawn) (w :pawn) (w :pawn) (w :pawn)]
-    [(w :rook) (w :knight) (w :bishop) (w :queen) (w :king) (w :bishop) (w :knight) (w :rook)]
+    [(w "pawn") (w "pawn") (w "pawn") (w "pawn") (w "pawn") (w "pawn") (w "pawn") (w "pawn")]
+    [(w "rook") (w "knight") (w "bishop") (w "queen") (w "king") (w "bishop") (w "knight") (w "rook")]
 ])
 
 (def get-file-offset (partial string/index-of "abcdefgh"))

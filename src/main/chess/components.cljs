@@ -12,7 +12,7 @@
 
 (defn get-square-background-color [hovered-color row-idx col-idx available-moves]
     (if (contains? available-moves [row-idx col-idx])
-        (if (= hovered-color :white) "springgreen" "lightblue")
+        (if (= hovered-color "white") "springgreen" "lightblue")
         (if (= (even? row-idx) (even? col-idx)) "white" "gray")))
 
 (defn square-ui [js-props]
@@ -104,7 +104,7 @@
 
 (defn loading-ui [active-color]
     [:div {:style { :width 80 :height 80 :margin "0 auto 20px"}}
-        (when (= active-color :black)
+        (when (= active-color "black")
             [:img { :src "spinner.gif" :height "100%" :width "100%" }])])
 
 (defn board-ui [board hovered-coords active-color {:keys [set-hovered-coords set-piece]}]

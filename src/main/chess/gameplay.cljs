@@ -5,12 +5,12 @@
 
 (declare evaluate-game-tree)
 
-(defn get-comparator [color] (if (= color :white) > <))
+(defn get-comparator [color] (if (= color "white") > <))
 
 (defn get-default-score-if-no-subtree [color]
     "Handles cases when a board is not yet at terminal depth, but has no moves available. For now,
     we need this to seek checkmate."
-    (if (= color :white) js/Infinity (- js/Infinity)))
+    (if (= color "white") js/Infinity (- js/Infinity)))
 
 (defn select-cache [item] (get item :cache))
 
@@ -82,8 +82,8 @@
                                  (select-best-subtree-score color next-game-tree))]
                 (next-step {:visited-moves (conj visited-moves {:move next-move :score next-score})
                             :cache (get next-game-tree :cache cache)
-                            :alpha (if (= color :white) (max alpha next-score) alpha)
-                            :beta (if (= color :black) (min beta next-score) beta)})))))
+                            :alpha (if (= color "white") (max alpha next-score) alpha)
+                            :beta (if (= color "black") (min beta next-score) beta)})))))
 
 (defn evaluate-game-tree
     "Evaluation implements the minimax algorithm, which selects moves under the assumption that both
@@ -108,7 +108,7 @@
     subtree score (in `cache`). On the final search--which consumes almost all the search time--
     we'll be more likely to check optimal moves first, and thus more likely to hit an alpha/beta
     early exit."
-    (loop [cache {:white {} :black {}}
+    (loop [cache {"white" {} "black" {}}
            iterative-depth 1]
         (let [game-tree (evaluate-game-tree board color cache iterative-depth)]
             (if (= iterative-depth depth)

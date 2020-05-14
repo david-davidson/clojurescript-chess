@@ -14,7 +14,7 @@
 (defonce hovered-coords (reagent/atom nil))
 (defn set-hovered-coords [coords] (reset! hovered-coords coords))
 
-(defonce active-color (reagent/atom :white))
+(defonce active-color (reagent/atom "white"))
 (defn set-active-player [player] (reset! active-color player))
 
 (defn set-piece [from-color from to]
@@ -23,7 +23,7 @@
         (set-active-player new-player)
         (set-board new-board)
         (js/setTimeout
-            (fn [] (when (= @active-color :black)
+            (fn [] (when (= @active-color "black")
                 (let [[from to] (get-next-move @board @active-color @search-depth)]
                     (set-piece @active-color from to))))
             ; Timeout gives time for loading GIF to reliably render
