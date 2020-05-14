@@ -46,7 +46,7 @@
 (defn piece-ui [js-props]
         (let [props (from-safe-props js-props)
               {:keys [piece coords available-moves active-color set-hovered-coords]} props
-              belongs-to-active-color (= active-color (get piece :color))
+              belongs-to-active-color (and (= active-color "white") (= active-color (get piece :color)))
               [dnd-props ref] (useDrag (clj->js {
                 :item (merge {:type :piece}
                               (to-safe-props {

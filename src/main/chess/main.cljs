@@ -2,8 +2,9 @@
     (:require [reagent.core :as reagent]
               [chess.components :refer [app]]
               [chess.utils :refer [reverse-color]]
-              [chess.gameplay :refer [get-next-move]]
               [chess.board :refer [get-initial-board move-piece]]))
+
+(def web-worker (js/Worker. "/compiled/worker.js"))
 
 (defonce search-depth (reagent/atom 4))
 (defn set-search-depth [depth] (reset! search-depth depth))
@@ -22,13 +23,14 @@
           new-player (reverse-color from-color)]
         (set-active-player new-player)
         (set-board new-board)
-        (js/setTimeout
-            (fn [] (when (= @active-color "black")
-                (let [[from to] (get-next-move @board @active-color @search-depth)]
-                    (set-piece @active-color from to))))
-            ; Timeout gives time for loading GIF to reliably render
-            250)
-        new-board))
+        (when (= @active-color "black")
+              (.. web-worker (postMessage (clj->js {:board @board
+                                                    :color @active-color
+                                                    :search-depth @search-depth}))))))
+
+(.. web-worker (addEventListener "message" (fn [evt]
+    (let [[from to] (js->clj (.. evt -data))]
+        (set-piece @active-color from to)))))
 
 ; --------------------------------------------------------------------------------------------------
 

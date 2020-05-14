@@ -12,8 +12,21 @@
 			:output-dir "public/compiled/"
 			:asset-path "compiled" ; Relative to `public`
 			:target :browser
-			:modules {:main {:init-fn chess.main/load!}}
-			:devtools {:after-load chess.main/reload!}
+
+			:modules {
+				:shared {:entries []}
+				:main {
+					:init-fn chess.main/load!
+					:depends-on #{:shared}
+				}
+				:worker {
+					:init-fn chess.worker/load!
+					:depends-on #{:shared}
+					:web-worker true}}
+				:devtools {
+					:browser-inject :main
+					:after-load chess.main/reload!
+				}
 		}
 	}
 }
