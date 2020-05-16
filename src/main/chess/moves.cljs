@@ -45,32 +45,30 @@
         moves
         (filter (partial is-move-unsafe board from-position) moves)))
 
-(defn iterate-valid-moves [board from-position move-config moves-to-visit]
-    "Builds a seq of valid moves within a larger moves seq"
-    (loop [moves-to-visit moves-to-visit visited-moves []]
-        (if-let [next-move (first moves-to-visit)]
-            (let [piece (lookup-coords board from-position)
-                  next-piece (lookup-coords board next-move)
-                  is-next-piece-opposite-color (= (reverse-color (get piece :color)) (get next-piece :color))]
-                (cond (not (is-coord-valid? next-move))
-                        visited-moves
-                      (and (get move-config :can-capture true) is-next-piece-opposite-color)
-                        (conj visited-moves next-move)
-                      (and (get move-config :can-advance true) (is-vacant? next-piece))
-                        (recur (rest moves-to-visit) (conj visited-moves next-move))
-                      :else
-                        visited-moves))
-            visited-moves)))
-
 (defn get-valid-moves [board from-position piece move-config]
     "Builds a seq of valid moves for a given piece"
     (let [color (get piece :color)
           get-limit (get move-config :get-limit)
           limit (when get-limit (get-limit piece))
           all-move-seqs (get-moves-seq-from-position (get move-config :transformations) color from-position limit)]
-        (->> all-move-seqs
-             (map (partial iterate-valid-moves board from-position move-config))
-             (flatten-once))))
+        (loop [move-seqs all-move-seqs
+               moves-to-visit (first move-seqs)
+               visited-moves (transient [])]
+            (if-let [moves-to-visit (if (nil? moves-to-visit) (first move-seqs) moves-to-visit)]
+                (if-let [next-move (first moves-to-visit)]
+                    (let [piece (lookup-coords board from-position)
+                        next-piece (lookup-coords board next-move)
+                        is-next-piece-opposite-color (= (reverse-color (get piece :color)) (get next-piece :color))]
+                        (cond (not (is-coord-valid? next-move))
+                                (recur (rest move-seqs) nil visited-moves)
+                            (and (get move-config :can-capture true) is-next-piece-opposite-color)
+                                (recur (rest move-seqs) nil (conj! visited-moves next-move))
+                            (and (get move-config :can-advance true) (is-vacant? next-piece))
+                                (recur move-seqs (rest moves-to-visit) (conj! visited-moves next-move))
+                            :else
+                                (recur (rest move-seqs) nil visited-moves)))
+                    (recur (rest move-seqs) nil visited-moves))
+                (persistent! visited-moves)))))
 
 (defn get-moves-from-position
     "Returns all moves available from a given position on the board"
