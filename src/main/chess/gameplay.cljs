@@ -1,53 +1,140 @@
 (ns chess.gameplay
-    (:require [chess.utils :refer [reverse-color reduce-with-early-exit]]
-              [chess.moves :refer [get-moves-for-color]]
-              [chess.board :refer [move-piece score-board]]))
+    (:require [chess.utils :refer [reverse-color reduce-with-early-exit indexes-by-item]]
+              [chess.moves :refer [get-moves-for-color get-all-moves-for-color]]
+              [chess.board :refer [move-piece score-material]]))
 
-(declare evaluate-board)
+(declare evaluate-game-tree)
 
 (defn get-comparator [color] (if (= color :white) > <))
 
-(defn get-initial-score [color] (if (= color :white) -1000 1000))
+(defn get-default-score-if-no-subtree [color]
+    "Handles cases when a board is not yet at terminal depth, but has no moves available. For now,
+    we need this to seek checkmate."
+    (if (= color :white) 1000 -1000))
 
-(def root-depth 1)
-(defn is-root [depth] (= depth root-depth))
+(defn is-root [depth] (= depth 1))
 
-(defn get-best-score-reducer [board color target-depth depth]
-    (fn [{:keys [score move tiebreaker alpha beta] :as total}
+(defn select-cache [item] (get item :cache))
+
+(defn select-sorted-moves [color item]
+    (->> (get item :visited-moves)
+         (map :move)))
+
+(defn select-best-move [color item]
+    (-> (get item :visited-moves)
+        first
+        :move))
+
+(defn select-best-subtree-score [color item]
+    (-> (get item :visited-moves)
+        first
+        (get :score (get-default-score-if-no-subtree color))))
+
+(defn sort-visited-moves [color item]
+    (let [sorted-moves (->> (get item :visited-moves)
+                            (sort-by :score (get-comparator color)))]
+        (assoc item :visited-moves sorted-moves)))
+
+(defn evaluate-board [color board]
+    "Especially in early games, we get a lot of ties on material alone. As a tiebreaker, we also
+    count the number of possible moves, so that tied boards favor the game state that'll open up
+    more options. We divide by 100 so that material remains the main factor."
+    (let [material-score (score-material board)
+          operator (if (= color :white) + -)
+          available-moves-weighting (-> (get-all-moves-for-color board color)
+                                        count
+                                        (/ 100))]
+        (operator material-score available-moves-weighting)))
+
+(defn get-initial-cache []
+    "Tracks child moves for visited boards, with subcaches for current player"
+    {:white {} :black {}})
+
+(defn update-cache [board color cache moves]
+    (let [subcache (get cache color)
+          next-subcache (assoc subcache board moves)]
+        (assoc cache color next-subcache)))
+
+(defn cache-visited-moves [board color results]
+    (let [next-cache (update-cache board
+                                   color
+                                   (select-cache results)
+                                   (select-sorted-moves color results))]
+        (assoc results :cache next-cache)))
+
+(defn get-available-moves [board color cache]
+    "Gets all moves available from a given board. If we've already visited the board, we check the
+    cache for the best order to visit children in. Note that we can't return the cache hit as-is
+    (and instead have to use it as a sort helper) because it's possible the previous iteration
+    alpha/beta pruned certain children that shouldn't be pruned in the current iteration."
+    (let [subcache (get cache color)
+          child-moves (get-moves-for-color board color)
+          cached-moves (get subcache board)]
+        (if cached-moves
+            (if (= (count cached-moves) (count child-moves))
+                ; If counts match, we know no children have been pruned, so can return cache as-is
+                cached-moves
+                (let [indexes-by-move (indexes-by-item cached-moves)]
+                    (sort-by #(get indexes-by-move % 1000) ; High default means uncached values appear late in seq
+                             child-moves)))
+            child-moves)))
+
+(defn get-minimax-reducer [board color target-depth depth]
+    "Minimax helper with an alpha/beta condition for early exit: `next-step` to continue iteration,
+    bare return value to bail early."
+    (fn [{:keys [alpha beta visited-moves cache] :as accum}
          next-move
          next-step]
         (if (> alpha beta)
-            total
+            accum ; Bail early
             (let [[from-coords to-coords] next-move
                   next-board (move-piece board from-coords to-coords)
+                  next-game-tree (when (< depth target-depth)
+                                       (evaluate-game-tree next-board
+                                                           (reverse-color color)
+                                                           cache
+                                                           target-depth
+                                                           (inc depth)
+                                                           alpha
+                                                           beta))
                   next-score (if (>= depth target-depth)
-                                 (score-board next-board)
-                                 (evaluate-board next-board
-                                                 (reverse-color color)
-                                                 target-depth
-                                                 (inc depth)
-                                                 alpha
-                                                 beta))
-                  next-tiebreaker (when (is-root depth) (count (get-moves-for-color next-board color)))
-                  should-update-score (if (= next-score score)
-                                          (> next-tiebreaker tiebreaker)
-                                          ((get-comparator color) next-score score))
-                  best-score (if should-update-score next-score score)]
-                (next-step {:score best-score
-                            :move (if should-update-score next-move move)
-                            :tiebreaker (if should-update-score next-tiebreaker tiebreaker)
-                            :alpha (if (= color :white) (max alpha best-score) alpha)
-                            :beta (if (= color :black) (min beta best-score) beta)})))))
+                                 (evaluate-board color next-board)
+                                 (select-best-subtree-score color next-game-tree))]
+                (next-step {:visited-moves (conj visited-moves {:move next-move :score next-score})
+                            :cache (get next-game-tree :cache cache)
+                            :alpha (if (= color :white) (max alpha next-score) alpha)
+                            :beta (if (= color :black) (min beta next-score) beta)})))))
 
-(defn evaluate-board
-    ([board color target-depth] (evaluate-board board color target-depth root-depth -1000 1000))
-    ([board color target-depth depth alpha beta]
-    (->> (get-moves-for-color board color)
+(defn evaluate-game-tree
+    "Evaluation implements the minimax algorithm, which selects moves under the assumption that both
+    players will make optimal choices. This assumption enables alpha/beta pruning, where if a score
+    is visited that means the current subtree will never be chosen, we can skip evaluating all other
+    boards in that subtreee. `alpha` and `beta` track the highest/lowest scores in a given subtree."
+    ([board color cache target-depth] (evaluate-game-tree board color cache target-depth 1 -1000 1000))
+    ([board color cache target-depth depth alpha beta]
+    (->> (get-available-moves board color cache)
          (reduce-with-early-exit
-            (get-best-score-reducer board color target-depth depth)
-            {:score (get-initial-score color)
-             :move nil
-             :tiebreaker nil
+            (get-minimax-reducer board color target-depth depth)
+            {:visited-moves []
+             :cache cache
              :alpha alpha
              :beta beta})
-         ((if (is-root depth) :move :score)))))
+         (sort-visited-moves color)
+         (cache-visited-moves board color))))
+
+(defn get-next-move [board color target-depth]
+    "We implement an iterative-deepening approach: for 3-ply search, we first search to depth 1,
+    then 2, then 3. As we go, for every move with _child_ moves, we store those moves in order of
+    subtree score (in `cache`). On the final search--which consumes almost all the search time--
+    we'll be more likely to check optimal moves first, and thus more likely to hit an alpha/beta
+    early exit."
+    (loop [cache (get-initial-cache)
+           iterative-depth 1]
+        (let [game-tree (evaluate-game-tree board
+                                            color
+                                            cache
+                                            iterative-depth)]
+            (if (= iterative-depth target-depth)
+                (select-best-move color game-tree)
+                (recur (select-cache game-tree)
+                       (inc iterative-depth))))))

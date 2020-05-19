@@ -36,7 +36,7 @@
             (assoc-in from (vacant))
             (assoc-in to (update-in piece [:move-count] inc)))))
 
-(defn score-board [board]
+(defn score-material [board]
     (reduce
         (fn [total row]
             (reduce

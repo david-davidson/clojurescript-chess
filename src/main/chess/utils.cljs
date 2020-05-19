@@ -12,15 +12,32 @@
 
 (defn reverse-color [color] (if (= color :black) :white :black))
 
-(defn const [val] (fn [] val))
+(defn const [x] (fn [] x))
 
-(defn reduce-with-early-exit [reducer total coll]
-        (let [current (first coll)]
+(defn reduce-indexed [reducer x xs]
+    (loop [xs xs
+           idx 0
+           x x]
+        (let [current (first xs)]
             (if (nil? current)
-                total
-                (reducer total
+                x
+                (recur (rest xs)
+                       (inc idx)
+                       (reducer idx x current))))))
+
+(defn indexes-by-item [xs]
+    (reduce-indexed (fn [idx total current]
+                        (assoc total current idx))
+                    {}
+                    xs))
+
+(defn reduce-with-early-exit [reducer x xs]
+        (let [current (first xs)]
+            (if (nil? current)
+                x
+                (reducer x
                          current
-                         #(reduce-with-early-exit reducer % (rest coll))))))
+                         #(reduce-with-early-exit reducer % (rest xs))))))
 
 ; Per https://github.com/reagent-project/reagent/issues/389, interop between React components and
 ; Reagent components automatically coerces primitives between CLJS and JS, in ways we don't usually

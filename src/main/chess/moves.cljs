@@ -1,5 +1,5 @@
 (ns chess.moves
-    (:require [chess.board :refer [lookup-coords move-piece score-board]]
+    (:require [chess.board :refer [lookup-coords move-piece]]
               [chess.utils :refer [flatten-once reverse-color]]
               [chess.pieces :refer [is-vacant? pieces-by-type]]))
 

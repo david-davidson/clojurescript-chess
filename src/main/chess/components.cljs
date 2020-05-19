@@ -91,12 +91,12 @@
                     char])
              ["A" "B" "C" "D" "E" "F" "G" "H"])])
 
-(def max-search-depth 5)
+(def max-search-depth 6)
 (defn depth-ui [search-depth set-search-depth]
     [:div {:style {:position "absolute" :top 40 :left 18}} "Search depth: "
     [:select
         {:value search-depth
-         :on-change #(set-search-depth (->> % .-target .-value))}
+         :on-change #(set-search-depth (->> % .-target .-value int))}
         (map (fn [idx]
             ^{:key idx}
             [:option { :value idx } idx]) (range 1 max-search-depth))]])
