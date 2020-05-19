@@ -4,16 +4,16 @@ An (extremely WIP) chess engine in Clojurescript: https://clojurescript-chess.su
 ## Getting started
 Install dependencies:
 ```
-npm install
+yarn install
 ```
 
 Then start the `shadow-cljs` build in one terminal window...
 ```
-shadow-cljs watch app
+yarn watch
 ```
 ...and open `localhost:9090` to load the app.
 
-To open a REPL, run `shadow-cljs cljs-repl app` in another terminal window (with `shadow-cljs watch app` running and the localhost window open). Execute `(ns chess.main)` to load the app's namespace.
+To open a REPL, run `yarn repl` in another terminal window (with `yarn watch` running and the localhost window open). Execute `(ns chess.main)` to load the app's namespace.
 
 ### What can it do so far?
 It implements the `minimax` algorithm, which walks the game tree and selects for _minimum_ or _maximum_ scores depending on which player "owns" the tree's current level. The search tree is limited to depth 3 (by performance concerns): so, look at all possible moves for black, then all possible moves (in response) for white, then all possible moves (in response) for black.
