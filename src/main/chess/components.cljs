@@ -11,7 +11,7 @@
 (def piece-size 60)
 
 (defn get-square-background-color [hovered-color row-idx col-idx available-moves]
-    (if (some #(= % [row-idx col-idx]) available-moves)
+    (if (contains? available-moves [row-idx col-idx])
         (if (= hovered-color :white) "springgreen" "lightblue")
         (if (= (even? row-idx) (even? col-idx)) "white" "gray")))
 
@@ -29,7 +29,7 @@
               :canDrop (fn [js-piece]
                 (let [piece-data (from-safe-props js-piece)
                       available-moves (get piece-data :available-moves)]
-                    (some #(= % [row-idx col-idx]) available-moves)))
+                    (contains? available-moves [row-idx col-idx])))
           }))]
         ^{:key (str row-idx col-idx)}
         (reagent/as-element [:div {
@@ -110,7 +110,7 @@
 (defn board-ui [board hovered-coords active-color {:keys [set-hovered-coords set-piece]}]
     [:> DndProvider {:backend react-html5-backend/default}
         [:div {:style {:display "inline-block"}}
-            (let [available-moves (get-moves-from-position board hovered-coords)
+            (let [available-moves (set (get-moves-from-position board hovered-coords))
                   hovered-color (:color (lookup-coords board hovered-coords))]
                 (map-indexed (fn [row-idx row]
                                 ^{:key row-idx}
