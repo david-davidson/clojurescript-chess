@@ -12,8 +12,6 @@
     we need this to seek checkmate."
     (if (= color :white) 1000 -1000))
 
-(defn is-root [depth] (= depth 1))
-
 (defn select-cache [item] (get item :cache))
 
 (defn select-sorted-moves [color item]
@@ -79,7 +77,7 @@
                              child-moves)))
             child-moves)))
 
-(defn get-minimax-reducer [board color target-depth depth]
+(defn get-minimax-reducer [board color depth]
     "Minimax helper with an alpha/beta condition for early exit: `next-step` to continue iteration,
     bare return value to bail early."
     (fn [{:keys [alpha beta visited-moves cache] :as accum}
@@ -89,15 +87,14 @@
             accum ; Bail early
             (let [[from-coords to-coords] next-move
                   next-board (move-piece board from-coords to-coords)
-                  next-game-tree (when (< depth target-depth)
+                  next-game-tree (when (> depth 1)
                                        (evaluate-game-tree next-board
                                                            (reverse-color color)
                                                            cache
-                                                           target-depth
-                                                           (inc depth)
+                                                           (dec depth)
                                                            alpha
                                                            beta))
-                  next-score (if (>= depth target-depth)
+                  next-score (if (= depth 1)
                                  (evaluate-board color next-board)
                                  (select-best-subtree-score color next-game-tree))]
                 (next-step {:visited-moves (conj visited-moves {:move next-move :score next-score})
@@ -110,11 +107,11 @@
     players will make optimal choices. This assumption enables alpha/beta pruning, where if a score
     is visited that means the current subtree will never be chosen, we can skip evaluating all other
     boards in that subtreee. `alpha` and `beta` track the highest/lowest scores in a given subtree."
-    ([board color cache target-depth] (evaluate-game-tree board color cache target-depth 1 -1000 1000))
-    ([board color cache target-depth depth alpha beta]
+    ([board color cache depth] (evaluate-game-tree board color cache depth -1000 1000))
+    ([board color cache depth alpha beta]
     (->> (get-available-moves board color cache)
          (reduce-with-early-exit
-            (get-minimax-reducer board color target-depth depth)
+            (get-minimax-reducer board color depth)
             {:visited-moves []
              :cache cache
              :alpha alpha
@@ -122,7 +119,7 @@
          (sort-visited-moves color)
          (cache-visited-moves board color))))
 
-(defn get-next-move [board color target-depth]
+(defn get-next-move [board color depth]
     "We implement an iterative-deepening approach: for 3-ply search, we first search to depth 1,
     then 2, then 3. As we go, for every move with _child_ moves, we store those moves in order of
     subtree score (in `cache`). On the final search--which consumes almost all the search time--
@@ -134,7 +131,7 @@
                                             color
                                             cache
                                             iterative-depth)]
-            (if (= iterative-depth target-depth)
+            (if (= iterative-depth depth)
                 (select-best-move color game-tree)
                 (recur (select-cache game-tree)
                        (inc iterative-depth))))))
