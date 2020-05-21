@@ -35,8 +35,8 @@
 (defn is-move-unsafe [board from-position to-position]
     (let [piece (lookup-coords board from-position)
           next-board (move-piece board from-position to-position)
-          other-teams-moves (get-all-moves-for-color next-board (reverse-color (get piece :color)))]
-        (not (some #(= to-position %) other-teams-moves))))
+          other-teams-moves (set (get-all-moves-for-color next-board (reverse-color (get piece :color))))]
+        (not (contains? other-teams-moves to-position))))
 
 (defn filter-unsafe-moves [board from-position should-filter moves]
     "Filters `moves` such that no move enters 'danger': a position where it could be taken as a result of the move.
