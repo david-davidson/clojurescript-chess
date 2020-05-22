@@ -19,7 +19,7 @@
                     :king "\u2654"})
 
 (def pawn {:type :pawn
-           :weight 1
+           :weight 100
            :moves [{
             :can-capture false
             :transformations (offsets->moves [[-1 0]])
@@ -31,32 +31,32 @@
            }]})
 
 (def rook {:type :rook
-           :weight 5
+           :weight 500
            :moves [{
             :transformations (offsets->moves [[0 1] [0 -1] [1 0] [-1 0]])
            }]})
 
 (def knight {:type :knight
-             :weight 5
+             :weight 320
              :moves [{
                 :get-limit (const 1)
                 :transformations (offsets->moves [[1 2] [2 1] [1 -2] [2 -1] [-1 -2] [-2 -1] [-1 2] [-2 1]])
              }]})
 
 (def bishop {:type :bishop
-             :weight 5
+             :weight 330
              :moves [{
               :transformations (offsets->moves [[1 1] [1 -1] [-1 1] [-1 -1]])
              }]})
 
 (def queen {:type :queen
-            :weight 25
+            :weight 900
             :moves [{
                 :transformations (offsets->moves [[0 1] [1 1] [1 0] [1 -1] [0 -1] [-1 -1] [-1 0] [-1 1]])
             }]})
 
 (def king {:type :king
-           :weight 100
+           :weight 20000
            :allow-unsafe-moves false ; Can't move into check
            :moves [{
             :get-limit (const 1)
@@ -76,3 +76,81 @@
 
 (def b (partial build-piece :black))
 (def w (partial build-piece :white))
+
+; ----------------------------------------------------------------------------------------------------------------------
+; Position weightings: per https://www.chessprogramming.org/Simplified_Evaluation_Function, different pieces are more or
+; less valuable at different places on the board. (A queen can do more in the center of the board than it can in a
+; corner!) These per-position weightings nudge the raw material score up or down depending on board layout. Weightings
+; are optimized for white and later mirrored for black.
+
+(def position-weightings {
+    :pawn [[0 0 0 0 0 0 0 0]
+           [50 50 50 50 50 50 50 50]
+           [10 10 20 30 30 20 10 10]
+           [5 5 10 25 25 10 5 5]
+           [0 0 0 20 20 0 0 0]
+           [5 -5 -10 0 0 -10 -5 5]
+           [5 10 10 -20 -20 10 10 5]
+           [0 0 0 0 0 0 0 0]]
+    :knight [[-50 -40 -30 -30 -30 -30 -40 -50]
+             [-40 -20 0 0 0 0 -20 -40]
+             [-30 0 10 15 15 10 0 -30]
+             [-30 5 15 20 20 15 5 -30]
+             [-30 0 15 20 20 15 0 -30]
+             [-30 5 10 15 15 10 5 -30]
+             [-40 -20 0 5 5 0 -20 -40]
+             [-50 -40 -30 -30 -30 -30 -40 -50]]
+    :bishop [[-20 -10 -10 -10 -10 -10 -10 -20]
+             [-10 0 0 0 0 0 0 -10]
+             [-10 0 5 0 0 5 0 -10]
+             [-10 5 5 0 0 5 5 -10]
+             [-10 0 0 0 0 0 0 -10]
+             [-10 0 0 0 0 0 0 -10]
+             [-10 5 0 0 0 0 5 -10]
+             [-20 -10 -10 -10 -10 -10 -10 -20]]
+    :rook [[0 0 0 0 0 0 0 0]
+           [5 10 10 10 10 10 10 5]
+           [-5 0 0 0 0 0 0 -5]
+           [-5 0 0 0 0 0 0 -5]
+           [-5 0 0 0 0 0 0 -5]
+           [-5 0 0 0 0 0 0 -5]
+           [-5 0 0 0 0 0 0 -5]
+           [0 0 0 5 5 0 0 0]]
+    :queen [[-20 -10 -10 -5 -5 -10 -10 -20]
+            [-10 0 0 0 0 0 0 -10]
+            [-10 0 5 5 5 5 0 -10]
+            [-5 0 5 5 5 5 0 -5]
+            [0 0 5 5 5 5 0 -5]
+            [-10 5 5 5 5 5 0 -10]
+            [-10 0 5 0 0 0 0 -10]
+            [-20 -10 -10 -5 -5 -10 -10 -20]]
+    :king [[-30 -40 -40 -50 -50 -40 -40 -30]
+           [-30 -40 -40 -50 -50 -40 -40 -30]
+           [-30 -40 -40 -50 -50 -40 -40 -30]
+           [-30 -40 -40 -50 -50 -40 -40 -30]
+           [-20 -30 -30 -40 -40 -30 -30 -20]
+           [-10 -20 -20 -20 -20 -20 -20 -10]
+           [20 20 0 0 0 0 20 20]
+           [20 30 10 0 0 10 30 20]]
+})
+
+(defn mirror-position-weightings [board]
+    "Takes a layout of position weightings for white, and flips it for black"
+    (->> board
+         (map (fn [row]
+            (->> row
+                 (map (fn [item] (- item)))
+                 vec)))
+         reverse
+         vec))
+
+(def position-weightings-by-color {
+    :white position-weightings
+    :black (reduce (fn [total [color weighting]]
+        (assoc total color (mirror-position-weightings weighting))) {} position-weightings)
+})
+
+(defn get-position-weighting [color piece-type position]
+    (-> (get position-weightings-by-color color)
+        (get piece-type)
+        (get-in position)))

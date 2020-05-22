@@ -1,7 +1,7 @@
 (ns chess.gameplay
     (:require [chess.utils :refer [reverse-color reduce-with-early-exit indexes-by-item]]
               [chess.moves :refer [get-moves-for-color get-all-moves-for-color]]
-              [chess.board :refer [move-piece score-material]]))
+              [chess.board :refer [move-piece evaluate-board]]))
 
 (declare evaluate-game-tree)
 
@@ -32,21 +32,6 @@
     (let [sorted-moves (->> (get item :visited-moves)
                             (sort-by :score (get-comparator color)))]
         (assoc item :visited-moves sorted-moves)))
-
-(defn evaluate-board [color board]
-    "Especially in early games, we get a lot of ties on material alone. As a tiebreaker, we also
-    count the number of possible moves, so that tied boards favor the game state that'll open up
-    more options. We divide by 100 so that material remains the main factor."
-    (let [material-score (score-material board)
-          operator (if (= color :white) + -)
-          available-moves-weighting (-> (get-all-moves-for-color board color)
-                                        count
-                                        (/ 100))]
-        (operator material-score available-moves-weighting)))
-
-(defn get-initial-cache []
-    "Tracks child moves for visited boards, with subcaches for current player"
-    {:white {} :black {}})
 
 (defn update-cache [board color cache moves]
     (let [subcache (get cache color)
@@ -93,7 +78,7 @@
                                                            alpha
                                                            beta))
                   next-score (if (= depth 1)
-                                 (evaluate-board color next-board)
+                                 (evaluate-board next-board)
                                  (select-best-subtree-score color next-game-tree))]
                 (next-step {:visited-moves (conj visited-moves {:move next-move :score next-score})
                             :cache (get next-game-tree :cache cache)

@@ -1,6 +1,14 @@
 (ns chess.board
     (:require [clojure.string :as string]
-              [chess.pieces :as pieces :refer [bishop pawn b w vacant is-vacant? pieces-by-type]]))
+              [chess.utils :refer [reduce-indexed]]
+              [chess.pieces :as pieces :refer [bishop
+                                               pawn
+                                               b
+                                               w
+                                               vacant
+                                               is-vacant?
+                                               pieces-by-type
+                                               get-position-weighting]]))
 
 (defn get-initial-board [] [
     [(b :rook) (b :knight) (b :bishop) (b :queen) (b :king) (b :bishop) (b :knight) (b :rook)]
@@ -36,12 +44,17 @@
             (assoc-in from (vacant))
             (assoc-in to (update-in piece [:move-count] inc)))))
 
-(defn score-material [board]
-    (reduce
-        (fn [total row]
-            (reduce
-                (fn [total piece]
-                    (+ total (get piece :weight 0)))
+(defn evaluate-board [board]
+    (reduce-indexed
+        (fn [row-idx total row]
+            (reduce-indexed
+                (fn [col-idx total piece]
+                    (let [color (get piece :color)
+                          type (get piece :type)
+                          position-weighting (if (is-vacant? piece)
+                                                 0
+                                                 (get-position-weighting color type [row-idx col-idx]))]
+                    (+ total (get piece :weight 0) position-weighting)))
                 total
                 row))
         0
