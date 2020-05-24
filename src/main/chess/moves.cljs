@@ -41,12 +41,11 @@
 (defn filter-unsafe-moves [board color from-position should-filter moves]
     "Filters `moves` such that no move enters 'danger': a position where it could be taken as a result of the move.
     Mostly just for preventing kings moving into check."
-    ; (println "should filter?" should-filter)
     (if should-filter
         (filter (partial is-move-unsafe board color from-position) moves)
         moves))
 
-(defn get-valid-moves [board from-position piece should-filter-unsafe-moves move-config]
+(defn get-valid-moves [board from-position piece move-config]
     "Builds a seq of valid moves for a given piece"
     (let [color (get piece :color)
           get-limit (get move-config :get-limit)
@@ -69,58 +68,36 @@
                             :else
                                 (recur (rest move-seqs) nil visited-moves)))
                     (recur (rest move-seqs) nil visited-moves))
-                (persistent!
-                    visited-moves
-
-                    ; (if should-filter-unsafe-moves visited-moves (conj! visited-moves from-position))
-                    ; (conj! visited-moves from-position)
-                )))))
+                (persistent! visited-moves)))))
 
 (defn get-moves-from-position
     "Returns all moves available from a given position on the board"
     ([board position] (get-moves-from-position board position true))
-    ([board position should-filter-unsafe-moves]
+    ([board position filter-unsafe]
         (let [piece (lookup-coords board position)
               piece-data (get pieces-by-type (get piece :type))]
             (->> (get piece-data :moves)
-                 (map (partial get-valid-moves board position piece should-filter-unsafe-moves))
+                 (map (partial get-valid-moves board position piece))
                  (flatten-once)
-                 ((partial filter-unsafe-moves board (get piece :color) position should-filter-unsafe-moves))
-
-                 ))))
+                 ((partial filter-unsafe-moves board (get piece :color) position filter-unsafe))))))
 
 (defn get-moves-for-color [board color filter-unsafe]
-    ; (when filter-unsafe (println "filteeringg!"))
     (->> (get-coords-for-color board color)
          (map (fn [from-coords]
             (->> (get-moves-from-position board from-coords filter-unsafe)
-                 (map (fn [to-coords] [from-coords to-coords]))
-                ;  ((fn [xs]
-                ;     (if filter-unsafe
-                ;         xs
-                ;         (conj xs [from-coords from-coords])
-                ;     )
-                ;  ))
-                 )))
-         flatten-once
-         ))
+                 (map (fn [to-coords] [from-coords to-coords])))))
+         flatten-once))
 
-(defn matches-piece? [board type color]
-    (fn [coords]
-        (let [piece (lookup-coords board coords)]
-            (and (= (get piece :type) type) (= (get piece :color) color)))))
+(defn permits-king-capture? [board color to-coords]
+    (let [piece (lookup-coords board to-coords)]
+        (and (= "king" (get piece :type)) (= color (get piece :color)))))
 
 (defn is-check? [board color]
     (->> (get-all-moves-for-color board (reverse-color color))
-         (some (matches-piece? board "king" color))))
+         (some (partial permits-king-capture? board color))))
 
 (defn is-checkmate? [board color]
     (and (is-check? board color)
-         (->> (get-moves-for-color board color true) ; boolean necessary?
-              (filter (fn [move] (not (get (meta move) :null-move))))
+         (->> (get-moves-for-color board color true)
               (count)
-              (= 0)
-
-              ) ; you may not need boolean
-    ))
-        ;  (= 0 (count (get-moves-for-color board color true)))))
+              (= 0))))

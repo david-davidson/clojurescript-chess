@@ -56,7 +56,7 @@
             }]})
 
 (def king {:type "king"
-           :weight 99999999999
+           :weight 20000
            :moves [{
             :get-limit (const 1)
             :transformations (offsets->moves [[0 1] [1 1] [1 0] [1 -1] [0 -1] [-1 -1] [-1 0] [-1 1]])
