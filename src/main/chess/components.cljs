@@ -2,7 +2,7 @@
     (:require [chess.moves :refer [get-moves-from-position]]
               [chess.utils :refer [reverse-color to-safe-props from-safe-props get-js-children]]
               [reagent.core :as reagent]
-              [chess.board :refer [lookup-coords]]
+              [chess.board :refer [lookup]]
               ["react-dnd" :as react-dnd :refer [DndProvider useDrag useDrop]]
               ["react-dnd-html5-backend" :as react-html5-backend]
               [chess.pieces :refer [piece-symbols is-vacant?]]))
@@ -101,7 +101,6 @@
             ^{:key idx}
             [:option { :value idx } idx]) (range 1 max-search-depth))]])
 
-
 (defn loading-ui [active-color]
     [:div {:style { :width 80 :height 80 :margin "0 auto 20px"}}
         (when (= active-color "black")
@@ -111,7 +110,7 @@
     [:> DndProvider {:backend react-html5-backend/default}
         [:div {:style {:display "inline-block"}}
             (let [available-moves (set (get-moves-from-position board hovered-coords))
-                  hovered-color (:color (lookup-coords board hovered-coords))]
+                  hovered-color (:color (lookup board hovered-coords))]
                 (map-indexed (fn [row-idx row]
                                 ^{:key row-idx}
                                 [:div {:style {:display "flex"}}

@@ -1,14 +1,13 @@
 (ns chess.gameplay
     (:require [chess.utils :refer [reverse-color reduce-with-early-exit indexes-by-item]]
-              [chess.moves :refer [is-check? is-checkmate? permits-king-capture? get-moves-for-color]]
+              [chess.moves :refer [is-check? is-checkmate? captures-king? get-moves-for-color]]
               [chess.board :refer [move-piece evaluate-board]]))
 
 (declare evaluate-game-tree)
 
 (defn get-comparator [color] (if (= color "white") > <))
 
-(defn get-score-for-checkmate [color]
-    (if (= color "white") js/Infinity (- js/Infinity)))
+(defn get-score-for-checkmate [color] (if (= color "white") js/Infinity (- js/Infinity)))
 
 (defn select-cache [results] (get results :cache))
 
@@ -16,13 +15,10 @@
     (->> (get results :visited-moves)
          (map :move)))
 
-(defn select-best-move [color results]
-    (-> (get results :visited-moves)
-        first
-        :move))
+(def select-best-move (comp first select-sorted-moves))
 
 (defn select-best-subtree-score [color results board]
-    "If no best subtree exists (no child moves are available), looks for checkmate -- if no checkmate,
+    "If no best subtree exists (no child moves are available), looks for checkmate--if no checkmate,
     scores board as stalemate on the basis of material alone."
     (let [best-child (first (get results :visited-moves))]
         (if best-child
@@ -71,7 +67,7 @@
             accum ; Bail early!
             (let [[from-coords to-coords] next-move
                   is-leaf-node (= depth 1)
-                  permits-king-capture (permits-king-capture? board (reverse-color color) to-coords)
+                  captures-king (captures-king? board (reverse-color color) to-coords)
                   next-board (move-piece board from-coords to-coords)
                   next-game-tree (when (not is-leaf-node)
                                        (evaluate-game-tree next-board
@@ -88,10 +84,9 @@
                                                                 :score next-score
                                                                 :invalid (get next-game-tree :has-invalid-child false)})
                             :cache (get next-game-tree :cache cache)
-                            :has-invalid-child (or has-invalid-child permits-king-capture)
+                            :has-invalid-child (or has-invalid-child captures-king)
                             :alpha (if (= color "white") (max alpha next-score) alpha)
                             :beta (if (= color "black") (min beta next-score) beta)})))))
-
 
 (defn evaluate-game-tree
     "Evaluation implements the minimax algorithm, which selects moves under the assumption that both

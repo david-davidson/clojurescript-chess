@@ -1,9 +1,10 @@
 (ns chess.moves
-    (:require [chess.board :refer [lookup-coords move-piece]]
+    (:require [chess.board :refer [lookup move-piece]]
               [chess.utils :refer [flatten-once reverse-color]]
               [chess.pieces :refer [is-vacant? pieces-by-type]]))
 
 (declare is-check?)
+(declare get-moves-from-position)
 
 (defn is-coord-element-valid? [coord] (and (>= coord 0) (< coord 8)))
 (defn is-coord-valid? [coord] (every? is-coord-element-valid? coord))
@@ -11,12 +12,10 @@
 (defn get-coords-for-color [board color]
     (->> (for [x (range 8) y (range 8)] [x y])
          (filter (fn [position]
-            (let [piece (lookup-coords board position)]
+            (let [piece (lookup board position)]
                 (= color (get piece :color)))))))
 
-(declare get-moves-from-position) ; We need to declare this above `get-all-moves-for-color`, but can't _define_ it yet
-
-(defn get-all-moves-for-color [board color]
+(defn get-move-destinations-for-color [board color]
     (->> (get-coords-for-color board color)
          (map #(get-moves-from-position board % false))
          (flatten-once)))
@@ -56,8 +55,8 @@
                visited-moves (transient [])]
             (if-let [moves-to-visit (if (nil? moves-to-visit) (first move-seqs) moves-to-visit)]
                 (if-let [next-move (first moves-to-visit)]
-                    (let [piece (lookup-coords board from-position)
-                        next-piece (lookup-coords board next-move)
+                    (let [piece (lookup board from-position)
+                        next-piece (lookup board next-move)
                         is-next-piece-opposite-color (= (reverse-color (get piece :color)) (get next-piece :color))]
                         (cond (not (is-coord-valid? next-move))
                                 (recur (rest move-seqs) nil visited-moves)
@@ -74,7 +73,7 @@
     "Returns all moves available from a given position on the board"
     ([board position] (get-moves-from-position board position true))
     ([board position filter-unsafe]
-        (let [piece (lookup-coords board position)
+        (let [piece (lookup board position)
               piece-data (get pieces-by-type (get piece :type))]
             (->> (get piece-data :moves)
                  (map (partial get-valid-moves board position piece))
@@ -88,13 +87,13 @@
                  (map (fn [to-coords] [from-coords to-coords])))))
          flatten-once))
 
-(defn permits-king-capture? [board color to-coords]
-    (let [piece (lookup-coords board to-coords)]
+(defn captures-king? [board color to-coords]
+    (let [piece (lookup board to-coords)]
         (and (= "king" (get piece :type)) (= color (get piece :color)))))
 
 (defn is-check? [board color]
-    (->> (get-all-moves-for-color board (reverse-color color))
-         (some (partial permits-king-capture? board color))))
+    (->> (get-move-destinations-for-color board (reverse-color color))
+         (some (partial captures-king? board color))))
 
 (defn is-checkmate? [board color]
     (and (is-check? board color)

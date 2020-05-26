@@ -2,11 +2,11 @@
     (:require [reagent.core :as reagent]))
 
 (defn key-by
-    ([xs] (key-by identity xs))
-    ([key-fn xs]
-        (reduce #(assoc %1 (key-fn %2) %2)
+    ([coll] (key-by identity coll))
+    ([key-fn coll]
+        (reduce (fn [total current] (assoc total (key-fn current) current))
                 {}
-                xs)))
+                coll)))
 
 (def flatten-once (partial mapcat identity)) ; Only flattens one level deep
 
@@ -14,30 +14,29 @@
 
 (defn const [x] (fn [] x))
 
-(defn reduce-indexed [reducer x xs]
-    (loop [xs xs
-           idx 0
-           x x]
-        (let [current (first xs)]
+(defn reduce-indexed [reducer total coll]
+    (loop [coll coll
+           total total
+           idx 0]
+        (let [current (first coll)]
             (if (nil? current)
-                x
-                (recur (rest xs)
-                       (inc idx)
-                       (reducer idx x current))))))
+                total
+                (recur (rest coll)
+                       (reducer idx total current)
+                       (inc idx))))))
 
-(defn indexes-by-item [xs]
-    (reduce-indexed (fn [idx total current]
-                        (assoc total current idx))
+(defn indexes-by-item [coll]
+    (reduce-indexed (fn [idx total current] (assoc total current idx))
                     {}
-                    xs))
+                    coll))
 
-(defn reduce-with-early-exit [reducer x xs]
-        (let [current (first xs)]
+(defn reduce-with-early-exit [reducer total coll]
+        (let [current (first coll)]
             (if (nil? current)
-                x
-                (reducer x
+                total
+                (reducer total
                          current
-                         #(reduce-with-early-exit reducer % (rest xs))))))
+                         #(reduce-with-early-exit reducer % (rest coll))))))
 
 ; Per https://github.com/reagent-project/reagent/issues/389, interop between React components and
 ; Reagent components automatically coerces primitives between CLJS and JS, in ways we don't usually

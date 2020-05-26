@@ -67,7 +67,7 @@
 (defn build-piece [color type]
     {:color color
      :type type
-     :weight (let [weight (get (get pieces-by-type type) :weight)]
+     :weight (let [weight (-> (get pieces-by-type type) (get :weight))]
         (if (= color "white")
             weight
             (- weight)))
@@ -138,7 +138,7 @@
     (->> board
          (map (fn [row]
             (->> row
-                 (map (fn [item] (- item)))
+                 (map -)
                  vec)))
          reverse
          vec))
@@ -146,7 +146,9 @@
 (def position-weightings-by-color {
     "white" position-weightings
     "black" (reduce (fn [total [color weighting]]
-        (assoc total color (mirror-position-weightings weighting))) {} position-weightings)
+                        (assoc total color (mirror-position-weightings weighting)))
+                    {}
+                    position-weightings)
 })
 
 (defn get-position-weighting [color piece-type position]
