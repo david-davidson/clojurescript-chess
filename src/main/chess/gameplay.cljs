@@ -1,10 +1,14 @@
 (ns chess.gameplay
     (:require [chess.utils :refer [reverse-color reduce-with-early-exit indexes-by-item]]
-              [chess.moves :refer [is-check? is-checkmate? captures-king? get-moves-for-color]]
+              [chess.moves :refer [is-check? is-checkmate? captures-king? is-not-quiet? get-moves-for-color]]
               [chess.board :refer [move-piece evaluate-board]]))
 
 (declare evaluate-game-tree)
 (declare sort-moves)
+
+(def root-depth 1)
+(def quiescence-cutoff 1)
+(def quiescence-depth (- root-depth quiescence-cutoff))
 
 (defn get-comparator [color] (if (= color "white") > <))
 (defn get-alpha-beta-comparator [color] (if (= color "white") max min))
@@ -93,10 +97,12 @@
         (if (>= alpha beta)
             accum ; Bail early!
             (let [[from-coords to-coords] next-move
-                  is-leaf-node (= depth 1)
-                  captures-king (captures-king? board (reverse-color color) to-coords)
                   next-board (move-piece board from-coords to-coords)
-                  next-game-tree (when (not is-leaf-node)
+                  is-intermediate-node (or (> depth root-depth)
+                                           (and (> depth quiescence-depth)
+                                                (is-not-quiet? next-board (reverse-color color))))
+                  captures-king (captures-king? board (reverse-color color) to-coords)
+                  next-game-tree (when is-intermediate-node
                                        (evaluate-game-tree next-board
                                                            (reverse-color color)
                                                            cache
@@ -105,10 +111,9 @@
                                                            alpha
                                                            beta
                                                            (conj parent-moves next-move)))
-                  invalid (get next-game-tree :has-invalid-child false)
-                  next-score (if is-leaf-node
-                                 (evaluate-board next-board)
-                                 (select-best-subtree-score color next-game-tree next-board))
+                  next-score (if is-intermediate-node
+                                 (select-best-subtree-score color next-game-tree next-board)
+                                 (evaluate-board next-board))
                   invalid (get next-game-tree :has-invalid-child false)]
                 (next-step {:visited-moves (conj visited-moves {:move next-move
                                                                 :score next-score

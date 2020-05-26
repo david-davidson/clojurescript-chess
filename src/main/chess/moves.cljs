@@ -100,3 +100,13 @@
          (->> (get-moves-for-color board color true)
               (count)
               (= 0))))
+
+(defn abs [num] (max num (- num)))
+
+(defn is-not-quiet? [board color]
+    (let [opponent-color (reverse-color color)]
+        (->> (get-move-destinations-for-color board color)
+             (some (fn [coords]
+                (let [piece (lookup board coords)]
+                    (and (= opponent-color (get piece :color))
+                         (> (abs (get piece :weight)) 100))))))))

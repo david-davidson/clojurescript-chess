@@ -97,7 +97,7 @@
         children])
 
 (defn depth-ui [search-depth set-search-depth]
-    [:div "Search depth: "
+    [:div "Base search depth: "
         [:select
             {:value search-depth
              :style {:cursor "pointer"}
