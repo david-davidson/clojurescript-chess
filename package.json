@@ -7,6 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "shadow-cljs release app",
     "deploy": "npm run build && surge public/ --domain https://clojurescript-chess.surge.sh",
+    "deploy:stg": "npm run build && surge public/ --domain https://clojurescript-chess-staging.surge.sh",
     "watch": "shadow-cljs watch app",
     "repl": "shadow-cljs cljs-repl app"
   },

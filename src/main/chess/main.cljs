@@ -1,41 +1,14 @@
 (ns chess.main
     (:require [reagent.core :as reagent]
-              [cljs.core.async :refer [chan put! take! <! go-loop]]
               [chess.components :refer [app]]
+              [chess.worker_utils :refer [search-series search-parallel]]
               [chess.utils :refer [reverse-color]]
               [chess.moves :refer [is-check? is-checkmate?]]
               [chess.board :refer [get-initial-board move-piece]]))
 
 (declare set-piece)
 
-; Side effects: initializes worker and sets up messaging
-(defn get-worker-channels []
-    (let [web-worker (js/Worker. "/compiled/worker.js")
-          from-worker (chan)
-          to-worker (chan)]
-
-        (.. web-worker (addEventListener "message" (fn [evt]
-            (let [move-data (js->clj (.. evt -data))]
-                (put! from-worker move-data)))))
-
-        (go-loop []
-            (let [val (<! to-worker)]
-                (when val (.. web-worker (postMessage (clj->js val)))))
-            (recur))
-
-        [from-worker to-worker]))
-
-(defonce worker-channels (get-worker-channels))
-
-(defn message-worker [board color search-depth]
-    (let [[from-worker to-worker] worker-channels]
-        (js/Promise. (fn [resolve]
-            (put! to-worker {:board board
-                             :color color
-                             :search-depth search-depth})
-            (take! from-worker resolve)))))
-
-(defonce search-depth (reagent/atom 4))
+(defonce search-depth (reagent/atom 5))
 (defn set-search-depth [depth] (reset! search-depth depth))
 
 (defonce board (reagent/atom (get-initial-board)))
@@ -50,11 +23,24 @@
 (defonce active-color (reagent/atom "white"))
 (defn set-active-color [color] (reset! active-color color))
 
+(defonce parallel (reagent/atom true))
+(defn set-parallel [new-parallel] (reset! parallel new-parallel))
+
+(set! js/getBoard (fn [offset]
+    "For debugging when no REPL is available (e.g., deployed builds) via `window.getBoard()`.
+    `offset` represents number of steps back in game history (or current state if omitted)."
+    (->> (or offset 0)
+         (nth @history)
+         (println))))
+
 (defn init-next-move []
     (when (= @active-color "black")
-          (-> (message-worker @board @active-color @search-depth)
-              (.then (fn [[from to]]
-                (set-piece @active-color from to))))))
+        (let [start-time (.now js/Date)
+              search-fn (if @parallel search-parallel search-series)]
+            (-> (search-fn @board @active-color @search-depth)
+                (.then (fn [[from to]]
+                    (println "Search time:" (- (.now js/Date) start-time))
+                    (set-piece @active-color from to)))))))
 
 (defn alert-check-checkmate [new-board from-color]
     (js/setTimeout (fn []
@@ -79,10 +65,12 @@
                      board
                      hovered-coords
                      active-color
+                     parallel
                      search-depth
                      {:set-hovered-coords set-hovered-coords
                       :set-piece set-piece
-                      :set-search-depth set-search-depth}]
+                      :set-search-depth set-search-depth
+                      :set-parallel set-parallel}]
                     (.getElementById js/document "app")))
 
 (defn load! []

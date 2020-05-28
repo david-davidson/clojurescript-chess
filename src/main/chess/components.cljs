@@ -2,6 +2,7 @@
     (:require [chess.moves :refer [get-moves-from-position]]
               [chess.utils :refer [reverse-color to-safe-props from-safe-props get-js-children]]
               [reagent.core :as reagent]
+              [chess.constants :refer [max-search-depth worker-count]]
               [chess.board :refer [lookup]]
               ["react-dnd" :as react-dnd :refer [DndProvider useDrag useDrop]]
               ["react-dnd-html5-backend" :as react-html5-backend]
@@ -91,15 +92,26 @@
                     char])
              ["A" "B" "C" "D" "E" "F" "G" "H"])])
 
-(def max-search-depth 6)
+(defn controls-ui [children]
+    [:div {:style {:position "absolute" :top 40 :left 18 :text-align "left"}}
+        children])
+
 (defn depth-ui [search-depth set-search-depth]
-    [:div {:style {:position "absolute" :top 40 :left 18}} "Search depth: "
-    [:select
-        {:value search-depth
-         :on-change #(set-search-depth (->> % .-target .-value int))}
-        (map (fn [idx]
-            ^{:key idx}
-            [:option { :value idx } idx]) (range 1 max-search-depth))]])
+    [:div "Search depth: "
+        [:select
+            {:value search-depth
+             :style {:cursor "pointer"}
+             :on-change #(set-search-depth (->> % .-target .-value int))}
+            (map (fn [idx]
+                ^{:key idx}
+                [:option { :value idx } idx]) (range 1 max-search-depth))]])
+
+(defn worker-ui [parallel set-parallel]
+    [:label {:style {:cursor "pointer"}} (str "Parallel (" worker-count " workers):")
+        [:input {:type "checkbox"
+                 :style {:cursor "pointer"}
+                 :checked parallel
+                 :on-change #(set-parallel (not parallel))}]])
 
 (defn loading-ui [active-color]
     [:div {:style { :width 80 :height 80 :margin "0 auto 20px"}}
@@ -134,14 +146,21 @@
                              board))
                 [col-labels]]])
 
-(defn header-ui [search-depth active-color set-search-depth]
+(defn header-ui [search-depth active-color parallel set-search-depth set-parallel]
 [:div {:style {:display "flex" :position "relative"}}
-    [depth-ui search-depth set-search-depth]
+    [controls-ui
+        [:div
+            [depth-ui search-depth set-search-depth]
+            [worker-ui parallel set-parallel]]]
     [loading-ui active-color]
 ])
 
-(defn app [board hovered-coords active-color search-depth handlers]
+(defn app [board hovered-coords active-color parallel search-depth handlers]
     [:div {:style { :text-align "center" }}
         [:div {:style { :display "inline-block" }}
-            [header-ui @search-depth @active-color (get handlers :set-search-depth)]
+            [header-ui @search-depth
+                       @active-color
+                       @parallel
+                       (get handlers :set-search-depth)
+                       (get handlers :set-parallel)]
             [board-ui @board @hovered-coords @active-color handlers]]])
