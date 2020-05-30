@@ -57,6 +57,16 @@
                     (sort-by #(get indexes-by-move % js/Infinity) child-moves)))
             child-moves)))
 
+(defn get-alpha-beta-fn [target-color op]
+    "Helper for building alpha-beta choosers"
+    (fn [invalid current-color prev-val next-val]
+        (cond invalid prev-val
+              (= current-color target-color) (op prev-val next-val)
+              :else prev-val)))
+
+(def get-alpha (get-alpha-beta-fn "white" max))
+(def get-beta (get-alpha-beta-fn "black" min))
+
 (defn get-minimax-reducer [board color depth parent-moves]
     "Minimax helper with an alpha/beta condition for early exit: `next-step` to continue iteration,
     bare return value to bail early."
@@ -77,16 +87,17 @@
                                                            (conj parent-moves next-move)
                                                            alpha
                                                            beta))
+                  invalid (get next-game-tree :has-invalid-child false)
                   next-score (if is-leaf-node
                                  (evaluate-board next-board)
                                  (select-best-subtree-score color next-game-tree next-board))]
                 (next-step {:visited-moves (conj visited-moves {:move next-move
                                                                 :score next-score
-                                                                :invalid (get next-game-tree :has-invalid-child false)})
+                                                                :invalid invalid})
                             :cache (get next-game-tree :cache cache)
                             :has-invalid-child (or has-invalid-child captures-king)
-                            :alpha (if (= color "white") (max alpha next-score) alpha)
-                            :beta (if (= color "black") (min beta next-score) beta)})))))
+                            :alpha (get-alpha invalid color alpha next-score)
+                            :beta (get-beta invalid color beta next-score)})))))
 
 (defn evaluate-game-tree
     "Evaluation implements the minimax algorithm, which selects moves under the assumption that both
