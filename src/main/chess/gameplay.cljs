@@ -27,11 +27,14 @@
                 (get-score-for-checkmate color)
                 (evaluate-board board)))))
 
+(defn sort-moves [color moves]
+    (->> moves
+         (filter #(not (get % :invalid)))
+         (sort-by :score (get-comparator color))))
+
 (defn sort-visited-moves [color results]
-    (let [sorted-moves (->> (get results :visited-moves)
-                            (filter #(not (get % :invalid)))
-                            (sort-by :score (get-comparator color)))]
-        (assoc results :visited-moves sorted-moves)))
+    (assoc results :visited-moves (->> (get results :visited-moves)
+                                       (sort-moves color))))
 
 (defn cache-visited-moves [color parent-moves results]
     (let [cache (select-cache results)
@@ -57,15 +60,16 @@
                     (sort-by #(get indexes-by-move % js/Infinity) child-moves)))
             child-moves)))
 
-(defn get-alpha-beta-fn [target-color op]
+(defn get-alpha-beta-fn [target-color]
     "Helper for building alpha-beta choosers"
-    (fn [invalid current-color prev-val next-val]
-        (cond invalid prev-val
-              (= current-color target-color) (op prev-val next-val)
-              :else prev-val)))
+    (let [op (if (= target-color "white") max min)]
+        (fn [invalid current-color prev-val next-val]
+            (cond invalid prev-val
+                (= current-color target-color) (op prev-val next-val)
+                :else prev-val))))
 
-(def get-alpha (get-alpha-beta-fn "white" max))
-(def get-beta (get-alpha-beta-fn "black" min))
+(def get-alpha (get-alpha-beta-fn "white"))
+(def get-beta (get-alpha-beta-fn "black"))
 
 (defn get-minimax-reducer [board color depth parent-moves]
     "Minimax helper with an alpha/beta condition for early exit: `next-step` to continue iteration,
