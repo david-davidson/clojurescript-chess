@@ -6,7 +6,6 @@
                                                b
                                                w
                                                vacant
-                                               is-vacant?
                                                pieces-by-type
                                                get-position-weighting]]))
 
@@ -36,9 +35,7 @@
                 (fn [col-idx total piece]
                     (let [color (get piece :color)
                           type (get piece :type)
-                          position-weighting (if (is-vacant? piece)
-                                                 0
-                                                 (get-position-weighting color type [row-idx col-idx]))]
+                          position-weighting (get-position-weighting color type [row-idx col-idx])]
                     (+ total (get piece :weight 0) position-weighting)))
                 total
                 row))
