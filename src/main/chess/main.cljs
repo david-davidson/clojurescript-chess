@@ -41,6 +41,9 @@
 (defonce board (reagent/atom (get-initial-board)))
 (defn set-board [new-board] (reset! board new-board))
 
+(defonce history (atom (list @board)))
+(defn push-history [board] (reset! history (conj @history board)))
+
 (defonce hovered-coords (reagent/atom nil))
 (defn set-hovered-coords [coords] (reset! hovered-coords coords))
 
@@ -65,6 +68,7 @@
           new-color (reverse-color from-color)]
         (set-active-color new-color)
         (set-board new-board)
+        (push-history new-board)
         (alert-check-checkmate new-board from-color)
         (init-next-move)))
 
