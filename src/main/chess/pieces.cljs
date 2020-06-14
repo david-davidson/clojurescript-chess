@@ -154,4 +154,4 @@
 (defn get-position-weighting [color piece-type position]
     (-> (get position-weightings-by-color color)
         (get piece-type)
-        (get-in position)))
+        (get-in position 0)))
