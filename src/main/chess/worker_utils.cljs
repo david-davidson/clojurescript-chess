@@ -33,7 +33,6 @@
         (fn [color results]
             (when (= color target-color)
                   (->> results
-                       flatten-once
                        (map :score)
                        (apply comparator))))))
 
@@ -54,10 +53,15 @@
 
     We lose some alpha/beta optimization _within subtrees_ by searching such small spaces in
     isolation, but gain the ability to track _top-level_ alpha/beta as we go and expose it to
-    moves explored later in the process."
+    moves explored later in the process.
+
+    We track two separate atoms, `results` and `async-work`, to decouple the shape of the results
+    from the 'is work done?' criteria. e.g., once in a while a worker promise will return _no_ valid
+    results ([]), which means we can't simply push into the results vector and watch _its_ length."
     (js/Promise. (fn [resolve]
         (let [child-moves (get-moves-for-color board active-color false)
               results (atom [])
+              async-work (atom [])
               moves (chan)
               workers (chan)]
             (run! (partial put! workers) worker-pool)
@@ -65,21 +69,23 @@
             (go-loop []
                 (let [move (<! moves)
                       worker (<! workers)
-                      [from-worker to-worker] worker]
-                    (-> (message-worker from-worker
-                                        to-worker
-                                        parallel
-                                        {:board board
-                                         :color active-color
-                                         :search-depth search-depth
-                                         :moves-to-visit [move]
-                                         :alpha (get-alpha active-color @results)
-                                         :beta (get-beta active-color @results)})
-                        (.then (fn [latest-results]
-                            (put! workers worker)
-                            (swap! results #(conj % latest-results))
-                            (when (= (count child-moves) (count @results))
-                                  (resolve (flatten-once @results)))))))
+                      [from-worker to-worker] worker
+                      promise (-> (message-worker from-worker
+                                                  to-worker
+                                                  parallel
+                                                  {:board board
+                                                   :color active-color
+                                                   :search-depth search-depth
+                                                   :moves-to-visit [move]
+                                                   :alpha (get-alpha active-color @results)
+                                                   :beta (get-beta active-color @results)})
+                                  (.then (fn [latest-results]
+                                    (put! workers worker)
+                                    (swap! results #(concat % latest-results)))))]
+                    (swap! async-work #(conj % promise))
+                    (when (= (count child-moves) (count @async-work))
+                          (-> (js/Promise.all @async-work)
+                              (.then #(resolve @results)))))
                     (recur))))))
 
 (defn search-series [board active-color search-depth]
