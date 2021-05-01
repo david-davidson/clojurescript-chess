@@ -30,14 +30,6 @@
                     {}
                     coll))
 
-(defn reduce-with-early-exit [reducer total coll]
-        (let [current (first coll)]
-            (if (nil? current)
-                total
-                (reducer total
-                         current
-                         #(reduce-with-early-exit reducer % (rest coll))))))
-
 ; Per https://github.com/reagent-project/reagent/issues/389, interop between React components and
 ; Reagent components automatically coerces primitives between CLJS and JS, in ways we don't usually
 ; want (snake case to camel case, etc). To leave CLJS values untouched when we pass them in to

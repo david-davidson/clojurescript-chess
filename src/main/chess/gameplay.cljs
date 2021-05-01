@@ -1,5 +1,5 @@
 (ns chess.gameplay
-    (:require [chess.utils :refer [reverse-color reduce-with-early-exit indexes-by-item]]
+    (:require [chess.utils :refer [reverse-color indexes-by-item]]
               [chess.moves :refer [is-check? is-checkmate? captures-king? get-moves-for-color]]
               [chess.board :refer [move-piece evaluate-board]]))
 
@@ -85,13 +85,11 @@
         (if best-child (get best-child :at-depth) current-depth)))
 
 (defn get-minimax-reducer [board color depth parent-moves]
-    "Minimax helper with an alpha/beta condition for early exit: `next-step` to continue iteration,
-    bare return value to bail early."
     (fn [{:keys [alpha beta visited-moves has-invalid-child cache] :as accum}
          next-move
          next-step]
         (if (>= alpha beta)
-            accum ; Bail early!
+            (reduced accum) ; Bail early!
             (let [[from-coords to-coords] next-move
                   is-leaf-node (= depth 1)
                   captures-king (captures-king? board (reverse-color color) to-coords)
@@ -105,19 +103,18 @@
                                                            alpha
                                                            beta
                                                            (conj parent-moves next-move)))
-                  invalid (get next-game-tree :has-invalid-child false)
                   next-score (if is-leaf-node
                                  (evaluate-board next-board)
                                  (select-best-subtree-score color next-game-tree next-board))
                   invalid (get next-game-tree :has-invalid-child false)]
-                (next-step {:visited-moves (conj visited-moves {:move next-move
-                                                                :score next-score
-                                                                :at-depth (select-child-depth next-game-tree depth)
-                                                                :invalid invalid})
-                            :cache (get next-game-tree :cache cache)
-                            :has-invalid-child (or has-invalid-child captures-king)
-                            :alpha (get-alpha invalid color alpha next-score)
-                            :beta (get-beta invalid color beta next-score)})))))
+                {:visited-moves (conj visited-moves {:move next-move
+                                                     :score next-score
+                                                     :at-depth (select-child-depth next-game-tree depth)
+                                                     :invalid invalid})
+                 :cache (get next-game-tree :cache cache)
+                 :has-invalid-child (or has-invalid-child captures-king)
+                 :alpha (get-alpha invalid color alpha next-score)
+                 :beta (get-beta invalid color beta next-score)}))))
 
 (defn evaluate-game-tree
     "Evaluation implements the minimax algorithm, which selects moves under the assumption that both
@@ -127,7 +124,7 @@
     ([board color cache depth moves-to-visit alpha beta] (evaluate-game-tree board color cache depth moves-to-visit alpha beta []))
     ([board color cache depth moves-to-visit alpha beta parent-moves]
         (->> (get-available-moves board color cache moves-to-visit parent-moves)
-             (reduce-with-early-exit
+             (reduce
                 (get-minimax-reducer board color depth parent-moves)
                 {:visited-moves []
                  :cache cache
