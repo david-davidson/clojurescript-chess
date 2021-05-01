@@ -100,4 +100,5 @@
 (defn search-parallel [board active-color search-depth]
     (-> (explore-moves-parallel board active-color search-depth)
         (.then (fn [moves]
+            (js/console.log (clj->js (sort-moves active-color moves)))
             (select-best-move active-color moves)))))
