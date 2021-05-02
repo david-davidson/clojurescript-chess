@@ -28,6 +28,11 @@
 					:after-load chess.main/reload!
 				}
 		}
+		:test {
+			:target :node-test
+			:output-to "src/main/chess/test/out/tests.js"
+			:ns-regexp "chess.test."
+		}
 	}
 }
 

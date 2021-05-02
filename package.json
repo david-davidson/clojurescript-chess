@@ -4,12 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "build": "shadow-cljs release app",
     "deploy": "npm run build && surge public/ --domain https://clojurescript-chess.surge.sh",
     "deploy:stg": "npm run build && surge public/ --domain https://clojurescript-chess-staging.surge.sh",
     "watch": "shadow-cljs watch app",
-    "repl": "shadow-cljs cljs-repl app"
+    "repl": "shadow-cljs cljs-repl app",
+    "build-test": "shadow-cljs compile test",
+    "test": "yarn build-test && node src/main/chess/test/out/tests.js",
+    "release": "yarn test && yarn deploy"
   },
   "author": "daviddavidson.1988@gmail.com",
   "license": "MIT",
